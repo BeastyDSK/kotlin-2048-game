@@ -1,0 +1,46 @@
+# Gradle
+.gradle/
+/build
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+# Android Studio
+*.iml
+.idea/
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/misc.xml
+.idea/encodings.xml
+.idea/vcs.xml
+
+# Build artifacts
+/build
+/captures
+*.apk
+*.ap_
+*.aab
+*.aar
+
+# Local configuration
+local.properties
+
+# Native
+.externalNativeBuild
+.cxx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# Misc
+*.log
