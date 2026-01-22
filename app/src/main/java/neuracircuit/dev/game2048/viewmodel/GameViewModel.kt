@@ -11,13 +11,27 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import neuracircuit.dev.game2048.data.SoundManager
+
+// Event to trigger UI side-effects (Haptics)
+sealed class GameEvent {
+    data object Merge : GameEvent()
+}
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
     
     private val storage = GameStorage(application)
-    
+    private val soundManager = SoundManager(application) // Init SoundManager
+
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
+
+    // Flow for one-shot UI events (Haptics)
+    private val _gameEvents = MutableSharedFlow<GameEvent>()
+    val gameEvents: SharedFlow<GameEvent> = _gameEvents.asSharedFlow()
 
     init {
         // Attempt to load previous game
@@ -33,6 +47,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             // First run or corrupt data
             resetGame()
         }
+    }
+    
+    // Cleanup SoundPool when ViewModel clears
+    override fun onCleared() {
+        super.onCleared()
+        soundManager.release()
     }
 
     fun resetGame() {
@@ -50,6 +70,17 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val result = processMove(currentGrid, direction)
 
             if (result.moved) {
+                // --- AUDIO & HAPTIC LOGIC ---
+                if (result.points > 0) {
+                    // Merge occurred (Points were gained)
+                    soundManager.playMerge()
+                    _gameEvents.emit(GameEvent.Merge) // Trigger Haptic in UI
+                } else {
+                    // Just a move
+                    soundManager.playMove()
+                }
+                // -----------------------------
+
                 // 1. Intermediate State (The Slide Animation)
                 _gameState.update { it.copy(grid = result.intermediateGrid) }
 
@@ -61,7 +92,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 
                 _gameState.update {
                     it.copy(
-                        grid = result.finalGrid, 
+                        grid = result.finalGrid,
                         score = newScore,
                         highScore = highScore
                     )

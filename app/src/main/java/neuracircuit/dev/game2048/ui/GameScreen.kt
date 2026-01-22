@@ -21,13 +21,29 @@ import neuracircuit.dev.game2048.ui.components.AnimatedTile
 import neuracircuit.dev.game2048.ui.components.GridSlot
 import neuracircuit.dev.game2048.ui.components.ScoreBoard
 import neuracircuit.dev.game2048.viewmodel.GameViewModel
-import kotlin.math.abs
 import neuracircuit.dev.game2048.ui.theme.GameColors
+import neuracircuit.dev.game2048.viewmodel.GameEvent
+import kotlin.math.abs
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType 
+import androidx.compose.ui.platform.LocalHapticFeedback
 
 @Composable
 fun GameScreen(viewModel: GameViewModel = viewModel()) {
     val state by viewModel.gameState.collectAsState()
     
+    // Haptic Feedback Hook
+    val haptic = LocalHapticFeedback.current
+
+    // Listen for Merge Events from ViewModel
+    LaunchedEffect(viewModel) {
+        viewModel.gameEvents.collect { event ->
+            if (event is GameEvent.Merge) {
+                // Trigger heavy click (LongPress) or TextHandleMove for crisp feeling
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+        }
+    }
+
     // Swipe Logic
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
