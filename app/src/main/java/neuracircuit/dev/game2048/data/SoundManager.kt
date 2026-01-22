@@ -31,16 +31,22 @@ class SoundManager(context: Context) {
         }
     }
 
-    fun playMove() {
-        if (isLoaded) {
-            soundPool.play(moveSoundId, 1f, 1f, 0, 0, 1f)
+    fun playMove(volume: Float) {
+        if (isLoaded && volume > 0) {
+            soundPool.play(moveSoundId, volume, volume, 0, 0, 1f)
         }
     }
 
-    fun playMerge() {
-        if (isLoaded) {
-            // Merge has higher priority (1) than move (0)
-            soundPool.play(mergeSoundId, 1f, 1f, 1, 0, 1f)
+    fun playMerge(volume: Float) {
+        if (isLoaded && volume > 0) {
+            soundPool.play(mergeSoundId, volume, volume, 1, 0, 1f)
+        }
+    }
+    
+    // Optional: A distinct sound for testing settings (reusing move for now)
+    fun playTest(volume: Float) {
+        if (isLoaded && volume > 0) {
+            soundPool.play(moveSoundId, volume, volume, 0, 0, 1.5f) // Higher pitch for test
         }
     }
 

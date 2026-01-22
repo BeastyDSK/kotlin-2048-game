@@ -21,13 +21,24 @@ sealed class GameEvent {
     data object Merge : GameEvent()
 }
 
+// Add settings to GameState or keep separate. 
+// For simplicity, I'll add them to GameState to make the UI simpler to observe.
+data class GameUiState(
+    val grid: List<Tile> = emptyList(),
+    val score: Int = 0,
+    val highScore: Int = 0,
+    val isGameOver: Boolean = false,
+    val volume: Float = 0.5f,
+    val isHapticEnabled: Boolean = true
+)
+
 class GameViewModel(application: Application) : AndroidViewModel(application) {
     
     private val storage = GameStorage(application)
     private val soundManager = SoundManager(application) // Init SoundManager
 
-    private val _gameState = MutableStateFlow(GameState())
-    val gameState: StateFlow<GameState> = _gameState.asStateFlow()
+    private val _uiState = MutableStateFlow(GameUiState())
+    val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
     // Flow for one-shot UI events (Haptics)
     private val _gameEvents = MutableSharedFlow<GameEvent>()
@@ -36,61 +47,94 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     init {
         // Attempt to load previous game
         val savedGame = storage.loadData()
+        val currentGrid = savedGame?.grid ?: emptyList()
+        val currentScore = savedGame?.score ?: 0
+        val currentHigh = savedGame?.highScore ?: storage.getHighScore()
         
-        if (savedGame != null && savedGame.grid.isNotEmpty()) {
-            _gameState.value = GameState(
-                grid = savedGame.grid,
-                score = savedGame.score,
-                highScore = savedGame.highScore
+        // Load Settings
+        val settings = storage.getSettings()
+
+        if (currentGrid.isNotEmpty()) {
+            _uiState.value = GameUiState(
+                grid = currentGrid,
+                score = currentScore,
+                highScore = currentHigh,
+                volume = settings.volume,
+                isHapticEnabled = settings.hapticsEnabled
             )
         } else {
-            // First run or corrupt data
-            resetGame()
+            // Apply settings but reset game
+            _uiState.value = GameUiState(
+                highScore = currentHigh,
+                volume = settings.volume,
+                isHapticEnabled = settings.hapticsEnabled
+            )
+            spawnTile(2)
         }
     }
     
-    // Cleanup SoundPool when ViewModel clears
-    override fun onCleared() {
-        super.onCleared()
-        soundManager.release()
+    // --- Settings Actions ---
+    
+    fun setVolume(newVolume: Float) {
+        _uiState.update { it.copy(volume = newVolume) }
+        storage.saveSettings(newVolume, _uiState.value.isHapticEnabled)
+    }
+    
+    fun toggleHaptics(enabled: Boolean) {
+        _uiState.update { it.copy(isHapticEnabled = enabled) }
+        storage.saveSettings(_uiState.value.volume, enabled)
+    }
+    
+    fun playTestSound() {
+        soundManager.playTest(_uiState.value.volume)
     }
 
+    // --- Game Logic ---
+
     fun resetGame() {
-        val currentHighScore = storage.getHighScore()
-        _gameState.value = GameState(highScore = currentHighScore)
+        val currentHigh = storage.getHighScore()
+        // Preserve settings during reset
+        _uiState.update { 
+            GameUiState(
+                highScore = currentHigh,
+                volume = it.volume,
+                isHapticEnabled = it.isHapticEnabled
+            )
+        }
         spawnTile(2)
-        storage.clearGame() // Clear saved active game, keep high score
+        storage.clearActiveGame()
     }
 
     fun handleSwipe(direction: Direction) {
-        if (_gameState.value.isGameOver) return
+        if (_uiState.value.isGameOver) return
 
         viewModelScope.launch {
-            val currentGrid = _gameState.value.grid
+            val currentGrid = _uiState.value.grid
             val result = processMove(currentGrid, direction)
 
             if (result.moved) {
-                // --- AUDIO & HAPTIC LOGIC ---
+                // Audio & Haptics
+                val vol = _uiState.value.volume
+                
                 if (result.points > 0) {
-                    // Merge occurred (Points were gained)
-                    soundManager.playMerge()
-                    _gameEvents.emit(GameEvent.Merge) // Trigger Haptic in UI
+                    soundManager.playMerge(vol)
+                    if (_uiState.value.isHapticEnabled) {
+                        _gameEvents.emit(GameEvent.Merge)
+                    }
                 } else {
-                    // Just a move
-                    soundManager.playMove()
+                    soundManager.playMove(vol)
                 }
-                // -----------------------------
 
                 // 1. Intermediate State (The Slide Animation)
-                _gameState.update { it.copy(grid = result.intermediateGrid) }
+                _uiState.update { it.copy(grid = result.intermediateGrid) }
 
                 delay(100) // Wait for slide to finish
 
                 // 2. Logic Merge
-                val newScore = _gameState.value.score + result.points
-                val highScore = maxOf(newScore, _gameState.value.highScore)
-                
-                _gameState.update {
+                val newScore = _uiState.value.score + result.points
+                val highScore = maxOf(newScore, _uiState.value.highScore)
+
+                _uiState.update {
                     it.copy(
                         grid = result.finalGrid,
                         score = newScore,
@@ -105,15 +149,20 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 spawnTile(1)
                 
                 // Save again after spawn (so the new tile is remembered)
-                storage.saveData(_gameState.value.grid, _gameState.value.score)
+                storage.saveData(_uiState.value.grid, _uiState.value.score)
                 
                 checkGameOver()
             }
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        soundManager.release()
+    }
+
     private fun spawnTile(count: Int = 1) {
-        _gameState.update { current ->
+        _uiState.update { current ->
             val occupied = current.grid.map { it.x to it.y }.toSet()
             val emptySlots = mutableListOf<Pair<Int, Int>>()
             for (x in 0..3) {
@@ -136,7 +185,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun checkGameOver() {
-        val grid = _gameState.value.grid
+        val grid = _uiState.value.grid
         if (grid.size < 16) return
 
         val gridMap = grid.associate { (it.x to it.y) to it.value }
@@ -148,7 +197,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 if (valCurrent == valRight || valCurrent == valDown) return
             }
         }
-        _gameState.update { it.copy(isGameOver = true) }
+        _uiState.update { it.copy(isGameOver = true) }
     }
 
     private fun processMove(tiles: List<Tile>, direction: Direction): MoveResult {

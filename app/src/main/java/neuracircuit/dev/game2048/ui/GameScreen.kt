@@ -4,8 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,14 +24,21 @@ import neuracircuit.dev.game2048.ui.components.ScoreBoard
 import neuracircuit.dev.game2048.viewmodel.GameViewModel
 import neuracircuit.dev.game2048.ui.theme.GameColors
 import neuracircuit.dev.game2048.viewmodel.GameEvent
+import neuracircuit.dev.game2048.ui.components.GameOverOverlay
+import neuracircuit.dev.game2048.ui.components.dialogs.SettingsDialog
 import kotlin.math.abs
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType 
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 
 @Composable
 fun GameScreen(viewModel: GameViewModel = viewModel()) {
-    val state by viewModel.gameState.collectAsState()
-    
+    // Depending on if you renamed state to 'uiState' or kept 'gameState', update this line.
+    // I am assuming 'uiState' based on the settings features, but if you kept 'gameState', change it back.
+    val state by viewModel.uiState.collectAsState()
+
+    // State to toggle Settings Dialog
+    var showSettings by remember { mutableStateOf(false) }
+
     // Haptic Feedback Hook
     val haptic = LocalHapticFeedback.current
 
@@ -79,17 +87,37 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        // --- HEADER ROW (Title + Settings Icon) ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("2048", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = GameColors.TextDark)
+            
+            // Settings Button
+            IconButton(
+                onClick = { showSettings = true },
+                modifier = Modifier
+                    .background(GameColors.GridBackground, RoundedCornerShape(8.dp))
+                    .size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings, 
+                    contentDescription = "Settings", 
+                    tint = Color.White
+                )
+            }
+        }
+        
+        // --- SCORE BOARD ---
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             ScoreBoard(score = state.score, highScore = state.highScore)
         }
         
         Spacer(modifier = Modifier.height(32.dp))
 
+        // --- GAME BOARD ---
         BoxWithConstraints(
             modifier = Modifier
                 .aspectRatio(1f)
@@ -114,20 +142,20 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
             }
 
             if (state.isGameOver) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.White.copy(alpha = 0.7f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Game Over", fontSize = 40.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        Button(onClick = { viewModel.resetGame() }) {
-                            Text("Try Again")
-                        }
-                    }
-                }
+                GameOverOverlay(onRestart = { viewModel.resetGame() })
             }
         }
+    }
+
+    // --- SETTINGS DIALOG ---
+    if (showSettings) {
+        SettingsDialog(
+            volume = state.volume,
+            isHapticsEnabled = state.isHapticEnabled,
+            onVolumeChange = { viewModel.setVolume(it) },
+            onVolumeChangeFinished = { viewModel.playTestSound() },
+            onHapticsChange = { viewModel.toggleHaptics(it) },
+            onDismiss = { showSettings = false }
+        )
     }
 }

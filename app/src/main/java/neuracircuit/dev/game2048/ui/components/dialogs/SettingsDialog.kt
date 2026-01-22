@@ -1,0 +1,103 @@
+package neuracircuit.dev.game2048.ui.components.dialogs
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.ui.window.Dialog
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import neuracircuit.dev.game2048.ui.theme.GameColors
+import kotlin.math.roundToInt
+
+@Composable
+fun SettingsDialog(
+    volume: Float,
+    isHapticsEnabled: Boolean,
+    onVolumeChange: (Float) -> Unit,
+    onVolumeChangeFinished: () -> Unit,
+    onHapticsChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFAF8EF)), // Using Game Background Color
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Settings", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = GameColors.TextDark)
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                // --- VOLUME CONTROL ---
+                Text(
+                    "Volume", 
+                    fontSize = 18.sp, 
+                    fontWeight = FontWeight.Bold, 
+                    color = GameColors.TextDark, 
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Slider(
+                        value = volume,
+                        onValueChange = onVolumeChange,
+                        onValueChangeFinished = onVolumeChangeFinished,
+                        modifier = Modifier.weight(1f),
+                        colors = SliderDefaults.colors(
+                            thumbColor = GameColors.TextDark,
+                            activeTrackColor = GameColors.TextDark,
+                            inactiveTrackColor = GameColors.GridBackground
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "${(volume * 100).roundToInt()}%",
+                        color = GameColors.TextDark,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(40.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // --- HAPTICS CONTROL ---
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Vibration", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = GameColors.TextDark)
+                    Switch(
+                        checked = isHapticsEnabled,
+                        onCheckedChange = onHapticsChange,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = GameColors.TextDark,
+                            uncheckedThumbColor = GameColors.TextDark,
+                            uncheckedTrackColor = GameColors.GridBackground
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(containerColor = GameColors.TextDark),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Close", color = Color.White)
+                }
+            }
+        }
+    }
+}

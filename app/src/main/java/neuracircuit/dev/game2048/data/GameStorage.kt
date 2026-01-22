@@ -31,6 +31,14 @@ class GameStorage(context: Context) {
         }
     }
 
+    // NEW: Save Settings
+    fun saveSettings(volume: Float, hapticsEnabled: Boolean) {
+        prefs.edit {
+            putFloat("volume", volume)
+                .putBoolean("haptics", hapticsEnabled)
+        }
+    }
+
     fun loadData(): SavedGame? {
         val gridJson = prefs.getString("game_board", null) ?: return null
         val score = prefs.getInt("score", 0)
@@ -50,14 +58,23 @@ class GameStorage(context: Context) {
         return prefs.getInt("high_score", 0)
     }
 
-    fun clearGame() {
+    fun clearActiveGame() {
         // We keep high_score, but reset board and score
         prefs.edit {
             remove("game_board")
                 .putInt("score", 0)
         }
     }
+
+    // NEW: Load Settings
+    fun getSettings(): SavedSettings {
+        return SavedSettings(
+            volume = prefs.getFloat("volume", 0.5f), // Default 0.5f
+            hapticsEnabled = prefs.getBoolean("haptics", true) // Default true
+        )
+    }
 }
 
 // Helper DTO for loading
 data class SavedGame(val grid: List<Tile>, val score: Int, val highScore: Int)
+data class SavedSettings(val volume: Float, val hapticsEnabled: Boolean)
