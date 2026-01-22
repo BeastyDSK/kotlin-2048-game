@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,16 +22,16 @@ import neuracircuit.dev.game2048.ui.components.GridSlot
 import neuracircuit.dev.game2048.ui.components.ScoreBoard
 import neuracircuit.dev.game2048.viewmodel.GameViewModel
 import kotlin.math.abs
-import kotlin.math.max
+import neuracircuit.dev.game2048.ui.theme.GameColors
 
 @Composable
 fun GameScreen(viewModel: GameViewModel = viewModel()) {
     val state by viewModel.gameState.collectAsState()
     
-    // Gesture Detection
+    // Swipe Logic
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
-    val minSwipeDist = 50f // Sensitivity
+    val minSwipeDist = 50f
 
     Column(
         modifier = Modifier
@@ -42,7 +41,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
                     onDragEnd = {
                         val absX = abs(offsetX)
                         val absY = abs(offsetY)
-                        if (max(absX, absY) > minSwipeDist) {
+                        if (java.lang.Float.max(absX, absY) > minSwipeDist) {
                             if (absX > absY) {
                                 if (offsetX > 0) viewModel.handleSwipe(Direction.RIGHT)
                                 else viewModel.handleSwipe(Direction.LEFT)
@@ -64,49 +63,40 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "2048",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF776E65)
-            )
+            Text("2048", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = GameColors.TextDark)
             ScoreBoard(score = state.score)
         }
         
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Game Board Container
         BoxWithConstraints(
             modifier = Modifier
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFFBBADA0))
+                .background(GameColors.GridBackground)
                 .padding(4.dp)
         ) {
-            val tileSize = (maxWidth - 8.dp) / 4 // 4dp padding total inside / 4 slots
-            val density = LocalDensity.current
+            val tileSize = (maxWidth - 8.dp) / 4
 
-            // 1. Static Background Grid
+            // Static Background
             for (x in 0..3) {
                 for (y in 0..3) {
                     GridSlot(tileSize, x, y)
                 }
             }
 
-            // 2. Active Tiles (Overlays)
-            // We use 'key' to ensure Compose tracks individual tiles by ID for animations
+            // Dynamic Tiles
             state.grid.forEach { tile ->
                 key(tile.id) {
                     AnimatedTile(tile = tile, tileSize = tileSize)
                 }
             }
-            
+
             if (state.isGameOver) {
                 Box(
                     modifier = Modifier
