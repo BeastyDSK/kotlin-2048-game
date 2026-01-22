@@ -69,7 +69,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("2048", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = GameColors.TextDark)
-            ScoreBoard(score = state.score)
+            ScoreBoard(score = state.score, highScore = state.highScore)
         }
         
         Spacer(modifier = Modifier.height(32.dp))

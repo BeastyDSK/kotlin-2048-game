@@ -20,15 +20,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun ScoreBoard(score: Int) {
-    Column(
-        modifier = Modifier
-            .background(GameColors.GridBackground, RoundedCornerShape(4.dp))
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("SCORE", fontSize = 12.sp, color = GameColors.tileColor(2), fontWeight = FontWeight.Bold) // Using beige as label
-        Text(score.toString(), fontSize = 20.sp, color = androidx.compose.ui.graphics.Color.White, fontWeight = FontWeight.Bold)
+fun ScoreBoard(score: Int, highScore: Int) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ScoreBox(label = "SCORE", value = score)
+        ScoreBox(label = "BEST", value = highScore)
     }
 }
 
@@ -101,5 +96,18 @@ fun AnimatedTile(tile: Tile, tileSize: Dp) {
             fontWeight = FontWeight.Bold,
             color = GameColors.textColor(displayedValue)
         )
+    }
+}
+
+@Composable
+fun ScoreBox(label: String, value: Int) {
+    Column(
+        modifier = Modifier
+            .background(GameColors.GridBackground, RoundedCornerShape(4.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(label, fontSize = 12.sp, color = GameColors.tileColor(2), fontWeight = FontWeight.Bold)
+        Text(value.toString(), fontSize = 20.sp, color = GameColors.tileColor(2), fontWeight = FontWeight.Bold)
     }
 }

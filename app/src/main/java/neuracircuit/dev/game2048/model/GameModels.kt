@@ -1,7 +1,9 @@
 package neuracircuit.dev.game2048.model
 
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
+@Serializable
 data class Tile(
     val id: String = UUID.randomUUID().toString(),
     val value: Int,
@@ -13,6 +15,7 @@ data class Tile(
 data class GameState(
     val grid: List<Tile> = emptyList(),
     val score: Int = 0,
+    val highScore: Int = 0, // Added High Score to state
     val isGameOver: Boolean = false
 )
 

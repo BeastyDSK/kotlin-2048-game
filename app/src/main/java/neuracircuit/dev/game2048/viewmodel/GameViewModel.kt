@@ -1,7 +1,9 @@
 package neuracircuit.dev.game2048.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import neuracircuit.dev.game2048.data.GameStorage
 import neuracircuit.dev.game2048.model.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,20 +12,39 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class GameViewModel : ViewModel() {
+class GameViewModel(application: Application) : AndroidViewModel(application) {
+    
+    private val storage = GameStorage(application)
+    
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
 
     init {
-        resetGame()
+        // Attempt to load previous game
+        val savedGame = storage.loadData()
+        
+        if (savedGame != null && savedGame.grid.isNotEmpty()) {
+            _gameState.value = GameState(
+                grid = savedGame.grid,
+                score = savedGame.score,
+                highScore = savedGame.highScore
+            )
+        } else {
+            // First run or corrupt data
+            resetGame()
+        }
     }
 
     fun resetGame() {
-        _gameState.value = GameState()
+        val currentHighScore = storage.getHighScore()
+        _gameState.value = GameState(highScore = currentHighScore)
         spawnTile(2)
+        storage.clearGame() // Clear saved active game, keep high score
     }
 
     fun handleSwipe(direction: Direction) {
+        if (_gameState.value.isGameOver) return
+
         viewModelScope.launch {
             val currentGrid = _gameState.value.grid
             val result = processMove(currentGrid, direction)
@@ -31,16 +52,30 @@ class GameViewModel : ViewModel() {
             if (result.moved) {
                 // 1. Intermediate State (The Slide Animation)
                 _gameState.update { it.copy(grid = result.intermediateGrid) }
-                
+
                 delay(100) // Wait for slide to finish
 
-                // 2. Final State (The Merge & Pop)
+                // 2. Logic Merge
+                val newScore = _gameState.value.score + result.points
+                val highScore = maxOf(newScore, _gameState.value.highScore)
+                
                 _gameState.update {
-                    it.copy(grid = result.finalGrid, score = it.score + result.points)
+                    it.copy(
+                        grid = result.finalGrid, 
+                        score = newScore,
+                        highScore = highScore
+                    )
                 }
 
-                delay(50) 
+                // 3. PERSIST STATE HERE
+                storage.saveData(result.finalGrid, newScore)
+
+                delay(50)
                 spawnTile(1)
+                
+                // Save again after spawn (so the new tile is remembered)
+                storage.saveData(_gameState.value.grid, _gameState.value.score)
+                
                 checkGameOver()
             }
         }
