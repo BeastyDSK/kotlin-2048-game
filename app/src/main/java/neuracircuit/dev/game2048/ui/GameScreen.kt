@@ -29,6 +29,10 @@ import neuracircuit.dev.game2048.ui.components.dialogs.SettingsDialog
 import kotlin.math.abs
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalContext
+import android.app.Activity
+import android.widget.Toast
 
 @Composable
 fun GameScreen(viewModel: GameViewModel = viewModel()) {
@@ -41,6 +45,10 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
 
     // Haptic Feedback Hook
     val haptic = LocalHapticFeedback.current
+
+    // double back to exit
+    val context = LocalContext.current
+    var lastBackPressTime by remember { mutableLongStateOf(0L) }
 
     // Listen for Merge Events from ViewModel
     LaunchedEffect(viewModel) {
@@ -157,5 +165,18 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
             onHapticsChange = { viewModel.toggleHaptics(it) },
             onDismiss = { showSettings = false }
         )
+    }
+
+    // --- DOUBLE BACK TO EXIT LOGIC ---
+    BackHandler {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastBackPressTime < 2000) {
+            // Exit the app
+            (context as? Activity)?.finish()
+        } else {
+            // Show toast and update time
+            lastBackPressTime = currentTime
+            Toast.makeText(context, "Press back again to exit", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 }
