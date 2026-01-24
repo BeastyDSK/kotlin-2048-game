@@ -55,13 +55,26 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val settings = storage.getSettings()
 
         if (currentGrid.isNotEmpty()) {
-            _uiState.value = GameUiState(
-                grid = currentGrid,
-                score = currentScore,
-                highScore = currentHigh,
-                volume = settings.volume,
-                isHapticEnabled = settings.hapticsEnabled
-            )
+            // FIX: Check if the saved game is already in a Game Over state
+            if (calculateGameOver(currentGrid)) {
+                // Edge Case: Saved game is dead. Reset but keep high score and settings.
+                _uiState.value = GameUiState(
+                    highScore = currentHigh,
+                    volume = settings.volume,
+                    isHapticEnabled = settings.hapticsEnabled
+                )
+                spawnTile(2)
+                storage.clearActiveGame()
+            } else {
+                // Normal Load
+                _uiState.value = GameUiState(
+                    grid = currentGrid,
+                    score = currentScore,
+                    highScore = currentHigh,
+                    volume = settings.volume,
+                    isHapticEnabled = settings.hapticsEnabled
+                )
+            }
         } else {
             // Apply settings but reset game
             _uiState.value = GameUiState(
@@ -184,20 +197,25 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun checkGameOver() {
-        val grid = _uiState.value.grid
-        if (grid.size < 16) return
-
+    // Helper logic to detect Game Over state
+    private fun calculateGameOver(grid: List<Tile>): Boolean {
+        if (grid.size < 16) return false
         val gridMap = grid.associate { (it.x to it.y) to it.value }
         for (x in 0..3) {
             for (y in 0..3) {
                 val valCurrent = gridMap[x to y] ?: continue
                 val valRight = gridMap[x + 1 to y]
                 val valDown = gridMap[x to y + 1]
-                if (valCurrent == valRight || valCurrent == valDown) return
+                if (valCurrent == valRight || valCurrent == valDown) return false
             }
         }
-        _uiState.update { it.copy(isGameOver = true) }
+        return true
+    }
+
+    private fun checkGameOver() {
+        if (calculateGameOver(_uiState.value.grid)) {
+            _uiState.update { it.copy(isGameOver = true) }
+        }
     }
 
     private fun processMove(tiles: List<Tile>, direction: Direction): MoveResult {
