@@ -9,9 +9,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import neuracircuit.dev.game2048.ui.GameScreen
 import neuracircuit.dev.game2048.ui.theme.GameColors
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import neuracircuit.dev.game2048.ui.SplashScreen
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
@@ -19,7 +27,17 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = GameColors.Background
                 ) {
-                    GameScreen()
+                    var showSplash by remember { mutableStateOf(true) }
+
+                    if (showSplash) {
+                        SplashScreen(
+                            onAnimationFinished = {
+                                showSplash = false
+                            }
+                        )
+                    } else {
+                        GameScreen()
+                    }
                 }
             }
         }

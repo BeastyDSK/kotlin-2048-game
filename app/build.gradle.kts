@@ -66,4 +66,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     //noinspection UseTomlInstead
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+
+    //noinspection UseTomlInstead
+    implementation("androidx.core:core-splashscreen:1.2.0")
 }
