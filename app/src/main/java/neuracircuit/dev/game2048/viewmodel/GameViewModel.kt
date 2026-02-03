@@ -23,6 +23,7 @@ data class Snapshot(val tiles: List<Tile>, val score: Int)
 // Event to trigger UI side-effects (Haptics)
 sealed class GameEvent {
     data object Merge : GameEvent()
+    data object Victory : GameEvent() // NEW: Event for winning sound/haptics
 }
 
 // Add settings to GameState or keep separate. 
@@ -32,6 +33,8 @@ data class GameUiState(
     val score: Int = 0,
     val highScore: Int = 0,
     val isGameOver: Boolean = false,
+    val hasWon: Boolean = false,      // NEW: Victory Flag
+    val keepPlaying: Boolean = false, // NEW: User decided to continue
     val volume: Float = 0.5f,
     val isHapticEnabled: Boolean = true,
     val canUndo: Boolean = false // UI State for Undo Button
@@ -75,13 +78,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 spawnTile(2)
                 storage.clearActiveGame()
             } else {
-                // Normal Load
+                // Determine if the user has already won in the saved game
+                // If they have a 2048 tile, we assume they chose "Keep Playing" previously
+                val has2048 = currentGrid.any { it.value >= 2048 }
+                
                 _uiState.value = GameUiState(
                     grid = currentGrid,
                     score = currentScore,
                     highScore = currentHigh,
                     volume = settings.volume,
-                    isHapticEnabled = settings.hapticsEnabled
+                    isHapticEnabled = settings.hapticsEnabled,
+                    hasWon = has2048, // Mark as won so dialog doesn't pop up again immediately
+                    keepPlaying = has2048 // Implicitly keep playing on reload
                 )
             }
         } else {
@@ -93,6 +101,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             )
             spawnTile(2)
         }
+    }
+
+    // --- ACTIONS ---
+
+    fun keepPlaying() {
+        _uiState.update { it.copy(keepPlaying = true) }
     }
 
     // --- UNDO LOGIC ---
@@ -121,12 +135,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             it.copy(
                 grid = snapshot.tiles,
                 score = snapshot.score,
-                isGameOver = false, // Reset Game Over on undo
-                canUndo = history.isNotEmpty()
+                isGameOver = false,
+                canUndo = history.isNotEmpty(),
+                // Note: We generally don't reset 'hasWon' on undo to avoid re-triggering the dialog annoying 
+                // but we could if strict logic is required. Keeping simple for now.
             )
         }
         
-        // Play sound for feedback (using move sound for now)
         soundManager.playMove(_uiState.value.volume)
         
         // Save the reverted state to storage immediately so app close doesn't lose it
@@ -160,7 +175,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 highScore = currentHigh,
                 volume = it.volume,
                 isHapticEnabled = it.isHapticEnabled,
-                canUndo = false
+                canUndo = false,
+                hasWon = false,      // Reset Victory
+                keepPlaying = false  // Reset Keep Playing
             )
         }
         spawnTile(2)
@@ -198,19 +215,37 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 // 2. Logic Merge
                 val newScore = _uiState.value.score + result.points
                 val highScore = maxOf(newScore, _uiState.value.highScore)
+                
+                // CHECK VICTORY
+                // We check if we haven't won yet, haven't decided to keep playing, 
+                // and if any NEW tile in the final grid is 2048.
+                var victoryTriggered = false
+                if (!_uiState.value.hasWon && !_uiState.value.keepPlaying) {
+                    if (result.finalGrid.any { it.value == 2048 }) {
+                        victoryTriggered = true
+                    }
+                }
 
                 _uiState.update {
                     it.copy(
                         grid = result.finalGrid,
                         score = newScore,
-                        highScore = highScore
+                        highScore = highScore,
+                        hasWon = if (victoryTriggered) true else it.hasWon
                     )
                 }
+                
+                if (victoryTriggered) {
+                     // Optional: Trigger a special victory sound/haptic here
+                     if (_uiState.value.isHapticEnabled) _gameEvents.emit(GameEvent.Victory)
+                }
 
-                // 3. PERSIST STATE HERE
                 storage.saveData(result.finalGrid, newScore)
 
                 delay(50)
+                
+                // Only spawn if we haven't just won (wait for user to click Keep Playing)
+                // OR spawn anyway? Standard behavior: Spawn anyway, show dialog overlay.
                 spawnTile(1)
                 
                 // Save again after spawn (so the new tile is remembered)

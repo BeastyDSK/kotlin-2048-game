@@ -23,7 +23,9 @@ object GameColors {
         512 -> Color(0xFFEDC850)
         1024 -> Color(0xFFEDC53F)
         2048 -> Color(0xFFEDC22E)
-        else -> Color(0xFF3C3A32)
+        4096 -> Color(0xFF3E3933) // Darker Red/Blackish (Official 4096 style)
+        8192 -> Color(0xFF2C2A26) // Even darker, nearly black
+        else -> Color.Black       // Fallback for > 8192 (Super Dark)
     }
 
     fun textColor(value: Int): Color = 

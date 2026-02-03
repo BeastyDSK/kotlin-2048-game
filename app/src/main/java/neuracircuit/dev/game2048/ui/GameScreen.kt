@@ -25,6 +25,7 @@ import neuracircuit.dev.game2048.viewmodel.GameViewModel
 import neuracircuit.dev.game2048.ui.theme.GameColors
 import neuracircuit.dev.game2048.viewmodel.GameEvent
 import neuracircuit.dev.game2048.ui.components.GameOverOverlay
+import neuracircuit.dev.game2048.ui.components.VictoryOverlay
 import neuracircuit.dev.game2048.ui.components.dialogs.SettingsDialog
 import kotlin.math.abs
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -54,7 +55,9 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
     LaunchedEffect(viewModel) {
         viewModel.gameEvents.collect { event ->
             if (event is GameEvent.Merge) {
-                // Trigger heavy click (LongPress) or TextHandleMove for crisp feeling
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            } else if (event is GameEvent.Victory) {
+                // Heavier vibration for victory
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             }
         }
@@ -169,7 +172,17 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
                 }
             }
 
-            if (state.isGameOver) {
+            // --- OVERLAYS ---
+            
+            // 1. Victory Overlay (Priority over Game Over, but user can dismiss it)
+            if (state.hasWon && !state.keepPlaying) {
+                VictoryOverlay(
+                    onKeepPlaying = { viewModel.keepPlaying() },
+                    onNewGame = { viewModel.resetGame() }
+                )
+            } 
+            // 2. Game Over Overlay
+            else if (state.isGameOver) {
                 GameOverOverlay(onRestart = { viewModel.resetGame() })
             }
         }
