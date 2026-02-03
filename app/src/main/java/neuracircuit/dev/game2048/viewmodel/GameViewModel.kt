@@ -15,6 +15,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import neuracircuit.dev.game2048.data.SoundManager
+import java.util.ArrayDeque
+
+// --- DATA MODEL FOR UNDO ---
+data class Snapshot(val tiles: List<Tile>, val score: Int)
 
 // Event to trigger UI side-effects (Haptics)
 sealed class GameEvent {
@@ -29,7 +33,8 @@ data class GameUiState(
     val highScore: Int = 0,
     val isGameOver: Boolean = false,
     val volume: Float = 0.5f,
-    val isHapticEnabled: Boolean = true
+    val isHapticEnabled: Boolean = true,
+    val canUndo: Boolean = false // UI State for Undo Button
 )
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
@@ -43,6 +48,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     // Flow for one-shot UI events (Haptics)
     private val _gameEvents = MutableSharedFlow<GameEvent>()
     val gameEvents: SharedFlow<GameEvent> = _gameEvents.asSharedFlow()
+
+    // --- UNDO HISTORY ---
+    private val history = ArrayDeque<Snapshot>()
+    private val maxHistorySize = 1 // Logic is DRY; change this to 5 later easily
 
     init {
         // Attempt to load previous game
@@ -85,7 +94,45 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             spawnTile(2)
         }
     }
-    
+
+    // --- UNDO LOGIC ---
+
+    private fun saveState() {
+        val currentGrid = _uiState.value.grid
+        val currentScore = _uiState.value.score
+        
+        // CRITICAL: Deep Copy of the list elements
+        val gridCopy = currentGrid.map { it.copy() }
+        
+        if (history.size >= maxHistorySize) {
+            history.removeFirst() // Remove oldest
+        }
+        history.addLast(Snapshot(gridCopy, currentScore))
+        
+        _uiState.update { it.copy(canUndo = true) }
+    }
+
+    fun undoLastMove() {
+        if (history.isEmpty()) return
+
+        val snapshot = history.removeLast()
+        
+        _uiState.update { 
+            it.copy(
+                grid = snapshot.tiles,
+                score = snapshot.score,
+                isGameOver = false, // Reset Game Over on undo
+                canUndo = history.isNotEmpty()
+            )
+        }
+        
+        // Play sound for feedback (using move sound for now)
+        soundManager.playMove(_uiState.value.volume)
+        
+        // Save the reverted state to storage immediately so app close doesn't lose it
+        storage.saveData(snapshot.tiles, snapshot.score)
+    }
+
     // --- Settings Actions ---
     
     fun setVolume(newVolume: Float) {
@@ -106,12 +153,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     fun resetGame() {
         val currentHigh = storage.getHighScore()
-        // Preserve settings during reset
+        history.clear() // Clear history on reset
+        
         _uiState.update { 
             GameUiState(
                 highScore = currentHigh,
                 volume = it.volume,
-                isHapticEnabled = it.isHapticEnabled
+                isHapticEnabled = it.isHapticEnabled,
+                canUndo = false
             )
         }
         spawnTile(2)
@@ -126,6 +175,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val result = processMove(currentGrid, direction)
 
             if (result.moved) {
+                // SAVE STATE BEFORE COMMITTING CHANGE
+                saveState()
+
                 // Audio & Haptics
                 val vol = _uiState.value.volume
                 

@@ -103,18 +103,38 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
         ) {
             Text("2048", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = GameColors.TextDark)
             
-            // Settings Button
-            IconButton(
-                onClick = { showSettings = true },
-                modifier = Modifier
-                    .background(GameColors.GridBackground, RoundedCornerShape(8.dp))
-                    .size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Settings, 
-                    contentDescription = "Settings", 
-                    tint = Color.White
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Undo Button
+                IconButton(
+                    onClick = { viewModel.undoLastMove() },
+                    enabled = state.canUndo,
+                    modifier = Modifier
+                        .background(
+                            color = if (state.canUndo) GameColors.GridBackground else Color(0xFFEEE4DA), 
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Undo",
+                        tint = if (state.canUndo) Color.White else Color.Gray.copy(alpha = 0.5f)
+                    )
+                }
+
+                // Settings Button
+                IconButton(
+                    onClick = { showSettings = true },
+                    modifier = Modifier
+                        .background(GameColors.GridBackground, RoundedCornerShape(8.dp))
+                        .size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings, 
+                        contentDescription = "Settings", 
+                        tint = Color.White
+                    )
+                }
             }
         }
         
