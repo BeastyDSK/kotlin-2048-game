@@ -34,6 +34,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.platform.LocalContext
 import android.app.Activity
 import android.widget.Toast
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.ui.res.stringResource
+import neuracircuit.dev.game2048.R
 
 @Composable
 fun GameScreen(viewModel: GameViewModel = viewModel()) {
@@ -49,6 +52,9 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
 
     // double back to exit
     val context = LocalContext.current
+    
+    // Load resource for toast
+    val doubleBackMsg = stringResource(R.string.msg_double_back_exit)
     var lastBackPressTime by remember { mutableLongStateOf(0L) }
 
     // Listen for Merge Events from ViewModel
@@ -57,7 +63,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
             if (event is GameEvent.Merge) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             } else if (event is GameEvent.Victory) {
-                // Heavier vibration for victory
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress) 
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             }
         }
@@ -68,30 +74,35 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
     var offsetY by remember { mutableFloatStateOf(0f) }
     val minSwipeDist = 50f
 
+    // Helper to determine if input should be blocked
+    val isOverlayVisible = (state.hasWon && !state.keepPlaying) || state.isGameOver
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragEnd = {
-                        val absX = abs(offsetX)
-                        val absY = abs(offsetY)
-                        if (java.lang.Float.max(absX, absY) > minSwipeDist) {
-                            if (absX > absY) {
-                                if (offsetX > 0) viewModel.handleSwipe(Direction.RIGHT)
-                                else viewModel.handleSwipe(Direction.LEFT)
-                            } else {
-                                if (offsetY > 0) viewModel.handleSwipe(Direction.DOWN)
-                                else viewModel.handleSwipe(Direction.UP)
+            .pointerInput(isOverlayVisible) { // Key checks if overlay state changes
+                if (!isOverlayVisible) {
+                    detectDragGestures(
+                        onDragEnd = {
+                            val absX = abs(offsetX)
+                            val absY = abs(offsetY)
+                            if (java.lang.Float.max(absX, absY) > minSwipeDist) {
+                                if (absX > absY) {
+                                    if (offsetX > 0) viewModel.handleSwipe(Direction.RIGHT)
+                                    else viewModel.handleSwipe(Direction.LEFT)
+                                } else {
+                                    if (offsetY > 0) viewModel.handleSwipe(Direction.DOWN)
+                                    else viewModel.handleSwipe(Direction.UP)
+                                }
                             }
+                            offsetX = 0f
+                            offsetY = 0f
                         }
-                        offsetX = 0f
-                        offsetY = 0f
+                    ) { change, dragAmount ->
+                        change.consume()
+                        offsetX += dragAmount.x
+                        offsetY += dragAmount.y
                     }
-                ) { change, dragAmount ->
-                    change.consume()
-                    offsetX += dragAmount.x
-                    offsetY += dragAmount.y
                 }
             }
             .padding(16.dp),
@@ -104,37 +115,43 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("2048", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = GameColors.TextDark)
+            Text(
+                text = stringResource(R.string.app_name), 
+                fontSize = 48.sp, 
+                fontWeight = FontWeight.Bold, 
+                color = GameColors.TextDark
+            )
             
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Undo Button
                 IconButton(
                     onClick = { viewModel.undoLastMove() },
-                    enabled = state.canUndo,
+                    enabled = state.canUndo && !isOverlayVisible, // Disable undo during overlay
                     modifier = Modifier
                         .background(
-                            color = if (state.canUndo) GameColors.GridBackground else Color(0xFFEEE4DA), 
+                            color = if (state.canUndo && !isOverlayVisible) GameColors.GridBackground else Color(0xFFEEE4DA), 
                             shape = RoundedCornerShape(8.dp)
                         )
                         .size(48.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Undo",
-                        tint = if (state.canUndo) Color.White else Color.Gray.copy(alpha = 0.5f)
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.desc_undo),
+                        tint = if (state.canUndo && !isOverlayVisible) Color.White else Color.Gray.copy(alpha = 0.5f)
                     )
                 }
 
                 // Settings Button
                 IconButton(
                     onClick = { showSettings = true },
+                    enabled = !isOverlayVisible, // Disable settings during overlay
                     modifier = Modifier
                         .background(GameColors.GridBackground, RoundedCornerShape(8.dp))
                         .size(48.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings, 
-                        contentDescription = "Settings", 
+                        contentDescription = stringResource(R.string.desc_settings),
                         tint = Color.White
                     )
                 }
@@ -180,9 +197,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
                     onKeepPlaying = { viewModel.keepPlaying() },
                     onNewGame = { viewModel.resetGame() }
                 )
-            } 
-            // 2. Game Over Overlay
-            else if (state.isGameOver) {
+            } else if (state.isGameOver) {
                 GameOverOverlay(onRestart = { viewModel.resetGame() })
             }
         }
@@ -209,7 +224,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
         } else {
             // Show toast and update time
             lastBackPressTime = currentTime
-            Toast.makeText(context, "Press back again to exit", android.widget.Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, doubleBackMsg, Toast.LENGTH_SHORT).show()
         }
     }
 }

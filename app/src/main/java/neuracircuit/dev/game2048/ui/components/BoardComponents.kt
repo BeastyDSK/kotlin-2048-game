@@ -18,12 +18,17 @@ import neuracircuit.dev.game2048.ui.theme.GameColors
 import neuracircuit.dev.game2048.ui.theme.getFontSize
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import neuracircuit.dev.game2048.R
+import java.text.NumberFormat
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun ScoreBoard(score: Int, highScore: Int) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ScoreBox(label = "SCORE", value = score)
-        ScoreBox(label = "BEST", value = highScore)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ScoreBox(label = stringResource(R.string.label_score), value = score)
+        ScoreBox(label = stringResource(R.string.label_best), value = highScore)
     }
 }
 
@@ -101,6 +106,11 @@ fun AnimatedTile(tile: Tile, tileSize: Dp) {
 
 @Composable
 fun ScoreBox(label: String, value: Int) {
+    // Format number based on Locale (e.g., 1,000 or 1.000)
+    val formattedValue = remember(value) {
+        NumberFormat.getInstance().format(value)
+    }
+
     Column(
         modifier = Modifier
             .background(GameColors.GridBackground, RoundedCornerShape(4.dp))
@@ -108,6 +118,6 @@ fun ScoreBox(label: String, value: Int) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(label, fontSize = 12.sp, color = GameColors.tileColor(2), fontWeight = FontWeight.Bold)
-        Text(value.toString(), fontSize = 20.sp, color = GameColors.tileColor(2), fontWeight = FontWeight.Bold)
+        Text(formattedValue, fontSize = 20.sp, color = GameColors.tileColor(2), fontWeight = FontWeight.Bold)
     }
 }

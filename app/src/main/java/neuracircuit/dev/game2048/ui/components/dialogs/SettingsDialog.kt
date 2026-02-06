@@ -13,6 +13,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import neuracircuit.dev.game2048.ui.theme.GameColors
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import neuracircuit.dev.game2048.R
 
 @Composable
 fun SettingsDialog(
@@ -33,13 +35,18 @@ fun SettingsDialog(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Settings", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = GameColors.TextDark)
+                Text(
+                    text = stringResource(R.string.title_settings), 
+                    fontSize = 28.sp, 
+                    fontWeight = FontWeight.Bold, 
+                    color = GameColors.TextDark
+                )
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 // --- VOLUME CONTROL ---
                 Text(
-                    "Volume", 
+                    text = stringResource(R.string.label_volume), 
                     fontSize = 18.sp, 
                     fontWeight = FontWeight.Bold, 
                     color = GameColors.TextDark, 
@@ -75,7 +82,12 @@ fun SettingsDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Vibration", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = GameColors.TextDark)
+                    Text(
+                        text = stringResource(R.string.label_vibration), 
+                        fontSize = 18.sp, 
+                        fontWeight = FontWeight.Bold, 
+                        color = GameColors.TextDark
+                    )
                     Switch(
                         checked = isHapticsEnabled,
                         onCheckedChange = onHapticsChange,
@@ -95,7 +107,7 @@ fun SettingsDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = GameColors.TextDark),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Close", color = Color.White)
+                    Text(stringResource(R.string.btn_close), color = Color.White)
                 }
             }
         }
