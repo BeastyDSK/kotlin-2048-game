@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "377080797621",
+    "project_id": "neuracircuit-dev-2048",
+    "storage_bucket": "neuracircuit-dev-2048.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:377080797621:android:eb612e28fade728a69e1fc",
+        "android_client_info": {
+          "package_name": "neuracircuit.dev.game2048"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYasUFrIaKz96sMLI_BiV0BOSakSxOEh4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

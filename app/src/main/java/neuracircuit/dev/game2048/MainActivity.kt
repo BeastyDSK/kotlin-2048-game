@@ -15,12 +15,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import neuracircuit.dev.game2048.ui.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import neuracircuit.dev.game2048.data.AnalyticsManager
 
 class MainActivity : ComponentActivity() {
+    private lateinit var analyticsManager: AnalyticsManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
+        
+        // 2. Initialize Analytics Helper
+        analyticsManager = AnalyticsManager(applicationContext)
+        
+        // Note: If you implement the GDPR flow later, you would trigger it here
+        // and call analyticsManager.initializeAndEnable() only after consent.
+        // For now, we assume the ViewModel handles the safe/lazy logging.
+
         setContent {
             MaterialTheme {
                 Surface(

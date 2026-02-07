@@ -34,7 +34,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.platform.LocalContext
 import android.app.Activity
 import android.widget.Toast
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.ui.res.stringResource
 import neuracircuit.dev.game2048.R
 
@@ -135,7 +135,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
                         .size(48.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.Undo,
                         contentDescription = stringResource(R.string.desc_undo),
                         tint = if (state.canUndo && !isOverlayVisible) Color.White else Color.Gray.copy(alpha = 0.5f)
                     )
@@ -150,7 +150,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
                         .size(48.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Settings, 
+                        imageVector = Icons.Default.Settings,
                         contentDescription = stringResource(R.string.desc_settings),
                         tint = Color.White
                     )

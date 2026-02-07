@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import neuracircuit.dev.game2048.data.GameStorage
+import neuracircuit.dev.game2048.data.SoundManager
+import neuracircuit.dev.game2048.data.AnalyticsManager // Import added
 import neuracircuit.dev.game2048.model.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,45 +16,40 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import neuracircuit.dev.game2048.data.SoundManager
 import java.util.ArrayDeque
 
 // --- DATA MODEL FOR UNDO ---
 data class Snapshot(val tiles: List<Tile>, val score: Int)
 
-// Event to trigger UI side-effects (Haptics)
 sealed class GameEvent {
     data object Merge : GameEvent()
-    data object Victory : GameEvent() // NEW: Event for winning sound/haptics
+    data object Victory : GameEvent()
 }
 
-// Add settings to GameState or keep separate. 
-// For simplicity, I'll add them to GameState to make the UI simpler to observe.
 data class GameUiState(
     val grid: List<Tile> = emptyList(),
     val score: Int = 0,
     val highScore: Int = 0,
     val isGameOver: Boolean = false,
-    val hasWon: Boolean = false,      // NEW: Victory Flag
-    val keepPlaying: Boolean = false, // NEW: User decided to continue
+    val hasWon: Boolean = false,
+    val keepPlaying: Boolean = false,
     val volume: Float = 0.5f,
     val isHapticEnabled: Boolean = true,
-    val canUndo: Boolean = false // UI State for Undo Button
+    val canUndo: Boolean = false
 )
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
     
     private val storage = GameStorage(application)
-    private val soundManager = SoundManager(application) // Init SoundManager
+    private val soundManager = SoundManager(application)
+    private val analytics = AnalyticsManager(application) // Initialize Analytics
 
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
-    // Flow for one-shot UI events (Haptics)
     private val _gameEvents = MutableSharedFlow<GameEvent>()
     val gameEvents: SharedFlow<GameEvent> = _gameEvents.asSharedFlow()
-
-    // --- UNDO HISTORY ---
+    
     private val history = ArrayDeque<Snapshot>()
     private val maxHistorySize = 1 // Logic is DRY; change this to 5 later easily
 
@@ -62,14 +59,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val currentGrid = savedGame?.grid ?: emptyList()
         val currentScore = savedGame?.score ?: 0
         val currentHigh = savedGame?.highScore ?: storage.getHighScore()
-        
-        // Load Settings
         val settings = storage.getSettings()
 
         if (currentGrid.isNotEmpty()) {
-            // FIX: Check if the saved game is already in a Game Over state
             if (calculateGameOver(currentGrid)) {
-                // Edge Case: Saved game is dead. Reset but keep high score and settings.
                 _uiState.value = GameUiState(
                     highScore = currentHigh,
                     volume = settings.volume,
@@ -78,22 +71,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 spawnTile(2)
                 storage.clearActiveGame()
             } else {
-                // Determine if the user has already won in the saved game
-                // If they have a 2048 tile, we assume they chose "Keep Playing" previously
                 val has2048 = currentGrid.any { it.value >= 2048 }
-                
                 _uiState.value = GameUiState(
                     grid = currentGrid,
                     score = currentScore,
                     highScore = currentHigh,
                     volume = settings.volume,
                     isHapticEnabled = settings.hapticsEnabled,
-                    hasWon = has2048, // Mark as won so dialog doesn't pop up again immediately
-                    keepPlaying = has2048 // Implicitly keep playing on reload
+                    hasWon = has2048,
+                    keepPlaying = has2048
                 )
             }
         } else {
-            // Apply settings but reset game
             _uiState.value = GameUiState(
                 highScore = currentHigh,
                 volume = settings.volume,
@@ -108,21 +97,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun keepPlaying() {
         _uiState.update { it.copy(keepPlaying = true) }
     }
-
-    // --- UNDO LOGIC ---
-
+    
     private fun saveState() {
         val currentGrid = _uiState.value.grid
         val currentScore = _uiState.value.score
-        
-        // CRITICAL: Deep Copy of the list elements
         val gridCopy = currentGrid.map { it.copy() }
-        
-        if (history.size >= maxHistorySize) {
-            history.removeFirst() // Remove oldest
-        }
+        if (history.size >= maxHistorySize) history.removeFirst()
         history.addLast(Snapshot(gridCopy, currentScore))
-        
         _uiState.update { it.copy(canUndo = true) }
     }
 
@@ -137,14 +118,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 score = snapshot.score,
                 isGameOver = false,
                 canUndo = history.isNotEmpty(),
-                // Note: We generally don't reset 'hasWon' on undo to avoid re-triggering the dialog annoying 
-                // but we could if strict logic is required. Keeping simple for now.
             )
         }
         
         soundManager.playMove(_uiState.value.volume)
-        
-        // Save the reverted state to storage immediately so app close doesn't lose it
         storage.saveData(snapshot.tiles, snapshot.score)
     }
 
@@ -154,17 +131,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(volume = newVolume) }
         storage.saveSettings(newVolume, _uiState.value.isHapticEnabled)
     }
-    
     fun toggleHaptics(enabled: Boolean) {
         _uiState.update { it.copy(isHapticEnabled = enabled) }
         storage.saveSettings(_uiState.value.volume, enabled)
     }
-    
     fun playTestSound() {
         soundManager.playTest(_uiState.value.volume)
     }
-
-    // --- Game Logic ---
 
     fun resetGame() {
         val currentHigh = storage.getHighScore()
@@ -176,8 +149,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 volume = it.volume,
                 isHapticEnabled = it.isHapticEnabled,
                 canUndo = false,
-                hasWon = false,      // Reset Victory
-                keepPlaying = false  // Reset Keep Playing
+                hasWon = false,
+                keepPlaying = false
             )
         }
         spawnTile(2)
@@ -192,12 +165,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val result = processMove(currentGrid, direction)
 
             if (result.moved) {
-                // SAVE STATE BEFORE COMMITTING CHANGE
                 saveState()
 
-                // Audio & Haptics
                 val vol = _uiState.value.volume
-                
                 if (result.points > 0) {
                     soundManager.playMerge(vol)
                     if (_uiState.value.isHapticEnabled) {
@@ -207,18 +177,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     soundManager.playMove(vol)
                 }
 
-                // 1. Intermediate State (The Slide Animation)
                 _uiState.update { it.copy(grid = result.intermediateGrid) }
+                delay(100)
 
-                delay(100) // Wait for slide to finish
-
-                // 2. Logic Merge
                 val newScore = _uiState.value.score + result.points
                 val highScore = maxOf(newScore, _uiState.value.highScore)
                 
-                // CHECK VICTORY
-                // We check if we haven't won yet, haven't decided to keep playing, 
-                // and if any NEW tile in the final grid is 2048.
                 var victoryTriggered = false
                 if (!_uiState.value.hasWon && !_uiState.value.keepPlaying) {
                     if (result.finalGrid.any { it.value == 2048 }) {
@@ -236,21 +200,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 
                 if (victoryTriggered) {
-                     // Optional: Trigger a special victory sound/haptic here
                      if (_uiState.value.isHapticEnabled) _gameEvents.emit(GameEvent.Victory)
                 }
 
                 storage.saveData(result.finalGrid, newScore)
-
                 delay(50)
-                
-                // Only spawn if we haven't just won (wait for user to click Keep Playing)
-                // OR spawn anyway? Standard behavior: Spawn anyway, show dialog overlay.
                 spawnTile(1)
-                
-                // Save again after spawn (so the new tile is remembered)
                 storage.saveData(_uiState.value.grid, _uiState.value.score)
-                
                 checkGameOver()
             }
         }
@@ -271,7 +227,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             if (emptySlots.isEmpty()) return@update current
-
             val newTiles = current.grid.toMutableList()
             repeat(count) {
                 if (emptySlots.isNotEmpty()) {
@@ -308,12 +263,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun processMove(tiles: List<Tile>, direction: Direction): MoveResult {
         val grid = Array(4) { Array<Tile?>(4) { null } }
         tiles.forEach { grid[it.x][it.y] = it }
-
         var points = 0
         var moved = false
         val finalTiles = mutableListOf<Tile>()
         val intermediateTiles = mutableListOf<Tile>()
-
         val isHorizontal = direction == Direction.LEFT || direction == Direction.RIGHT
         val range = if (direction == Direction.RIGHT || direction == Direction.DOWN) 3 downTo 0 else 0..3
         val step = if (direction == Direction.LEFT || direction == Direction.UP) 1 else -1
@@ -324,15 +277,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 val tile = if (isHorizontal) grid[j][i] else grid[i][j]
                 if (tile != null) line.add(tile)
             }
-
             var placeIndex = if (direction == Direction.LEFT || direction == Direction.UP) 0 else 3
             var skipNext = false
-
             for (k in line.indices) {
-                if (skipNext) {
-                    skipNext = false
-                    continue
-                }
+                if (skipNext) { skipNext = false; continue }
                 val current = line[k]
                 val next = line.getOrNull(k + 1)
                 
