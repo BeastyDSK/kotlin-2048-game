@@ -34,6 +34,9 @@ object GameColors {
 
 fun getFontSize(value: Int): TextUnit = when {
     value < 100 -> 32.sp
-    value < 1000 -> 28.sp
+    value < 1000 -> 26.sp
+    value < 10000 -> 20.sp
+    value < 100000 -> 16.sp
+    value < 1000000 -> 14.sp
     else -> 24.sp
 }

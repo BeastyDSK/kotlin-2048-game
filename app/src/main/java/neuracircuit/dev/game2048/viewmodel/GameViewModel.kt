@@ -51,7 +51,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     val gameEvents: SharedFlow<GameEvent> = _gameEvents.asSharedFlow()
     
     private val history = ArrayDeque<Snapshot>()
-    private val maxHistorySize = 1 // Logic is DRY; change this to 5 later easily
+    private val maxHistorySize = 1
+
+    // Helper to track session-based achievements so we don't log "512 reached" multiple times per game
+    private val reachedTilesSession = mutableSetOf<Int>()
 
     init {
         // Attempt to load previous game
@@ -112,6 +115,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         val snapshot = history.removeLast()
         
+        // Log Undo Action
+        analytics.logUndoUsed()
+
         _uiState.update { 
             it.copy(
                 grid = snapshot.tiles,
@@ -141,7 +147,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     fun resetGame() {
         val currentHigh = storage.getHighScore()
-        history.clear() // Clear history on reset
+        history.clear()
+        reachedTilesSession.clear() // Reset session tracker
+
+        // Log Game Start
+        analytics.logGameStart()
         
         _uiState.update { 
             GameUiState(
@@ -184,8 +194,15 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 val highScore = maxOf(newScore, _uiState.value.highScore)
                 
                 var victoryTriggered = false
-                if (!_uiState.value.hasWon && !_uiState.value.keepPlaying) {
-                    if (result.finalGrid.any { it.value == 2048 }) {
+                
+                // Check if any tile is >= 512 and log it (if not already logged this session)
+                result.finalGrid.forEach { tile ->
+                    if (tile.value >= 512 && !reachedTilesSession.contains(tile.value)) {
+                        analytics.logTileReached(tile.value)
+                        reachedTilesSession.add(tile.value)
+                    }
+                    // Victory check
+                    if (!_uiState.value.hasWon && !_uiState.value.keepPlaying && tile.value == 2048) {
                         victoryTriggered = true
                     }
                 }
@@ -257,6 +274,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun checkGameOver() {
         if (calculateGameOver(_uiState.value.grid)) {
             _uiState.update { it.copy(isGameOver = true) }
+            
+            // Log Game Over
+            val maxTile = _uiState.value.grid.maxOfOrNull { it.value } ?: 0
+            analytics.logGameOver(_uiState.value.score, maxTile)
         }
     }
 

@@ -16,6 +16,10 @@ import androidx.compose.runtime.setValue
 import neuracircuit.dev.game2048.ui.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import neuracircuit.dev.game2048.data.AnalyticsManager
+import androidx.core.view.WindowCompat
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : ComponentActivity() {
     private lateinit var analyticsManager: AnalyticsManager
@@ -24,6 +28,17 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
+
+        // 1. Enable Edge-to-Edge
+        enableEdgeToEdge()
+
+        // 2. Immersive Mode: Hide System Bars
+        val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
+        // Configure the behavior of the hidden system bars
+        windowInsetsController.systemBarsBehavior =
+            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        // Hide both the status bar and the navigation bar
+        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
         
         // 2. Initialize Analytics Helper
         analyticsManager = AnalyticsManager(applicationContext)

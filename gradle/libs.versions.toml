@@ -16,7 +16,6 @@ firebase-crashlytics-plugin = "3.0.6"
 firebase-bom = "34.9.0"
 
 [libraries]
-androidx-compose-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

@@ -89,10 +89,9 @@ fun SplashScreen(
         if (!tilesVisible.value) {
             GameTile(
                 text = "2048",
-                textSize = 60,
                 modifier = Modifier
                     .scale(scaleAnimation.value) // Applies the bounce
-                    .size(200.dp)
+                    .size(100.dp)
             )
         }
     }
