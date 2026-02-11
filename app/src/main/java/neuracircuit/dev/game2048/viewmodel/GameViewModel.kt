@@ -35,7 +35,8 @@ data class GameUiState(
     val keepPlaying: Boolean = false,
     val volume: Float = 0.5f,
     val isHapticEnabled: Boolean = true,
-    val canUndo: Boolean = false
+    val canUndo: Boolean = false,
+    val isUserReset: Boolean = false
 )
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
@@ -98,7 +99,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     // --- ACTIONS ---
 
     fun keepPlaying() {
-        _uiState.update { it.copy(keepPlaying = true) }
+        _uiState.update { it.copy(keepPlaying = true, isUserReset = false) }
     }
     
     private fun saveState() {
@@ -137,6 +138,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(volume = newVolume) }
         storage.saveSettings(newVolume, _uiState.value.isHapticEnabled)
     }
+
+    fun toggleUserReset(isUserReset: Boolean) {
+        _uiState.update { it.copy(isUserReset = isUserReset) }
+    }
+
     fun toggleHaptics(enabled: Boolean) {
         _uiState.update { it.copy(isHapticEnabled = enabled) }
         storage.saveSettings(_uiState.value.volume, enabled)
@@ -160,7 +166,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 isHapticEnabled = it.isHapticEnabled,
                 canUndo = false,
                 hasWon = false,
-                keepPlaying = false
+                keepPlaying = false,
+                grid = emptyList(),
+                score = 0,
+                isUserReset = false,
             )
         }
         spawnTile(2)

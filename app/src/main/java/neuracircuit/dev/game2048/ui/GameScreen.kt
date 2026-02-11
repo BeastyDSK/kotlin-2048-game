@@ -38,6 +38,7 @@ import neuracircuit.dev.game2048.R
 import androidx.compose.ui.unit.min
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
+import neuracircuit.dev.game2048.ui.components.NewGameOverlay
 
 @Composable
 fun GameScreen(viewModel: GameViewModel = viewModel()) {
@@ -79,7 +80,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
     val minSwipeDist = 50f
 
     // Helper to determine if input should be blocked
-    val isOverlayVisible = (state.hasWon && !state.keepPlaying) || state.isGameOver
+    val isOverlayVisible = (state.hasWon && !state.keepPlaying) || state.isGameOver || state.isUserReset
 
     // Shared Swipe Modifier to prevent code duplication
     val swipeModifier = Modifier
@@ -119,7 +120,8 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
             modifier = swipeModifier,
             isOverlayVisible = isOverlayVisible,
             onSettingsClick = { showSettings = true },
-            onUndoClick = { viewModel.undoLastMove() }
+            onUndoClick = { viewModel.undoLastMove() },
+            onResetClick = { viewModel.toggleUserReset(true) }
         )
     } else {
         PortraitGameLayout(
@@ -128,7 +130,8 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
             modifier = swipeModifier,
             isOverlayVisible = isOverlayVisible,
             onSettingsClick = { showSettings = true },
-            onUndoClick = { viewModel.undoLastMove() }
+            onUndoClick = { viewModel.undoLastMove() },
+            onResetClick = { viewModel.toggleUserReset(true) }
         )
     }
 
@@ -167,7 +170,8 @@ private fun PortraitGameLayout(
     modifier: Modifier,
     isOverlayVisible: Boolean,
     onSettingsClick: () -> Unit,
-    onUndoClick: () -> Unit
+    onUndoClick: () -> Unit,
+    onResetClick: () -> Unit
 ) {
     Column(
         modifier = modifier,
@@ -211,6 +215,20 @@ private fun PortraitGameLayout(
             )
 
             Spacer(modifier = Modifier.width(16.dp))
+
+            // Reset Button
+            ControlIcon(
+                icon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_reset),
+                        contentDescription = "New Game",
+                        tint = GameColors.TextDark
+                    ) 
+                },
+                enabled = !isOverlayVisible,
+                onClick = onResetClick
+            )
+
             // Settings Button
             ControlIcon(
                 icon = { 
@@ -244,7 +262,8 @@ private fun LandscapeGameLayout(
     modifier: Modifier,
     isOverlayVisible: Boolean,
     onSettingsClick: () -> Unit,
-    onUndoClick: () -> Unit
+    onUndoClick: () -> Unit,
+    onResetClick: () -> Unit
 ) {
     Row(
         modifier = modifier,
@@ -276,28 +295,44 @@ private fun LandscapeGameLayout(
             Row(horizontalArrangement = Arrangement.Center) {
                 ControlIcon(
                     icon = { 
-                       Icon(
-                           painter = painterResource(R.drawable.ic_settings),
-                           contentDescription = stringResource(R.string.desc_settings),
-                           tint = GameColors.TextDark
-                       )
-                    },
-                    enabled = !isOverlayVisible,
-                    onClick = onSettingsClick
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                ControlIcon(
-                    icon = { 
-                       Icon(
-                           painter = painterResource(id = R.drawable.ic_undo),
-                           contentDescription = stringResource(R.string.desc_undo),
-                           tint = if (state.canUndo && !isOverlayVisible) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
-                       )
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_undo),
+                            contentDescription = stringResource(R.string.desc_undo),
+                            tint = if (state.canUndo && !isOverlayVisible) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
+                        )
                     },
                     enabled = state.canUndo && !isOverlayVisible,
                     onClick = onUndoClick
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Reset Button
+                ControlIcon(
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_reset),
+                            contentDescription = "New Game",
+                            tint = GameColors.TextDark
+                        ) 
+                    },
+                    enabled = !isOverlayVisible,
+                    onClick = onResetClick
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Settings Button
+                ControlIcon(
+                    icon = { 
+                        Icon(
+                            painter = painterResource(R.drawable.ic_settings),
+                            contentDescription = stringResource(R.string.desc_settings),
+                            tint = GameColors.TextDark
+                        )
+                    },
+                    enabled = !isOverlayVisible,
+                    onClick = onSettingsClick
                 )
             }
         }
@@ -362,6 +397,13 @@ fun GameBoard(
             )
         } else if (state.isGameOver) {
             GameOverOverlay(onRestart = { viewModel.resetGame() })
+        } else if (state.isUserReset) {
+            NewGameOverlay(
+            onKeepPlaying = { viewModel.keepPlaying() },
+            onNewGame = { 
+                viewModel.resetGame()
+            }
+        )
         }
     }
 }
