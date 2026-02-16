@@ -36,16 +36,17 @@ android {
         // Define Build Config Fields from local.properties
         // If property is missing, fallback to Test IDs
         val admobAppId = localProperties.getProperty("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713"
-        val admobBannerId = localProperties.getProperty("ADMOB_BANNER_ID") ?: "ca-app-pub-3940256099942544/6300978111"
-        val admobInterstitialId = localProperties.getProperty("ADMOB_INTERSTITIAL_ID") ?: "ca-app-pub-3940256099942544/1033173712"
-        val admobRewardedId = localProperties.getProperty("ADMOB_REWARDED_ID") ?: "ca-app-pub-3940256099942544/5224354917"
-        val unityGameId = localProperties.getProperty("UNITY_GAME_ID") ?: "6028752"
+        val appBottomBannerId = localProperties.getProperty("APP_BOTTOM_BANNER_AD_ID") ?: "ca-app-pub-3940256099942544/6300978111"
+        val gameoverResetInterstitialId = localProperties.getProperty("GAMEOVER_RESET_INTERSTITIAL_AD_ID") ?: "ca-app-pub-3940256099942544/1033173712"
+        val undoLastMoveRewardedAdId = localProperties.getProperty("UNDO_LAST_MOVE_REWARDED_AD_ID") ?: "ca-app-pub-3940256099942544/5224354917"
+        val undoRewardedInterstitialAdId = localProperties.getProperty("UNDO_REWARDED_INTERSTITIAL_AD_ID") ?: "ca-app-pub-3940256099942544/5224354917"
+        // val unityGameId = localProperties.getProperty("UNITY_GAME_ID") ?: "6028752"
 
         buildConfigField("String", "ADMOB_APP_ID", "\"$admobAppId\"")
-        buildConfigField("String", "ADMOB_BANNER_ID", "\"$admobBannerId\"")
-        buildConfigField("String", "ADMOB_INTERSTITIAL_ID", "\"$admobInterstitialId\"")
-        buildConfigField("String", "ADMOB_REWARDED_ID", "\"$admobRewardedId\"")
-        buildConfigField("String", "UNITY_GAME_ID", "\"$unityGameId\"")
+        buildConfigField("String", "APP_BOTTOM_BANNER_AD_ID", "\"$appBottomBannerId\"")
+        buildConfigField("String", "GAMEOVER_RESET_INTERSTITIAL_AD_ID", "\"$gameoverResetInterstitialId\"")
+        buildConfigField("String", "UNDO_LAST_MOVE_REWARDED_AD_ID", "\"$undoLastMoveRewardedAdId\"")
+        buildConfigField("String", "UNDO_REWARDED_INTERSTITIAL_AD_ID", "\"$undoRewardedInterstitialAdId\"")
 
         // Inject App ID into Manifest
         manifestPlaceholders["ADMOB_APP_ID"] = admobAppId
@@ -111,6 +112,8 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
 
-    //noinspection UseTomlInstead
-    // implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+    implementation(libs.user.messaging.platform)
+
+    // Ads
+    implementation(libs.play.services.ads)
 }

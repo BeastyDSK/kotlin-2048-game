@@ -20,9 +20,14 @@ import androidx.core.view.WindowCompat
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import neuracircuit.dev.game2048.data.ConsentManager
+import com.google.android.gms.ads.MobileAds
+import androidx.compose.runtime.MutableState
 
 class MainActivity : ComponentActivity() {
     private lateinit var analyticsManager: AnalyticsManager
+    private lateinit var consentManager: ConsentManager
+    private val canRequestAdState: MutableState<Boolean> = mutableStateOf(false);
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -40,14 +45,27 @@ class MainActivity : ComponentActivity() {
         // Hide both the status bar and the navigation bar
         windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
         
-        // 2. Initialize Analytics Helper
         analyticsManager = AnalyticsManager(applicationContext)
-        
-        // Note: If you implement the GDPR flow later, you would trigger it here
-        // and call analyticsManager.initializeAndEnable() only after consent.
-        // For now, we assume the ViewModel handles the safe/lazy logging.
+
+        consentManager = ConsentManager(this)
+
+        consentManager.gatherConsent(object : ConsentManager.OnConsentGatheringCompleteListener {
+            override fun onConsentGatheringComplete(error: com.google.android.ump.FormError?) {
+                if (consentManager.canRequestAds) {
+                    analyticsManager.initializeAndEnable()
+
+                    MobileAds.initialize(this@MainActivity) {
+                        runOnUiThread {
+                            canRequestAdState.value = true
+                        }
+                    }
+                }
+            }
+        })
 
         setContent {
+            val canRequestAds by canRequestAdState
+
             MaterialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
@@ -62,7 +80,7 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     } else {
-                        GameScreen()
+                        GameScreen( canRequestAds = canRequestAds)
                     }
                 }
             }

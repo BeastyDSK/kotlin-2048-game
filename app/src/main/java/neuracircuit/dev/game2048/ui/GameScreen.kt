@@ -39,9 +39,10 @@ import androidx.compose.ui.unit.min
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
 import neuracircuit.dev.game2048.ui.components.NewGameOverlay
+import neuracircuit.dev.game2048.ads.AdaptiveBannerAd // Added Banner Ad Import
 
 @Composable
-fun GameScreen(viewModel: GameViewModel = viewModel()) {
+fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = false) {
     // Depending on if you renamed state to 'uiState' or kept 'gameState', update this line.
     // I am assuming 'uiState' based on the settings features, but if you kept 'gameState', change it back.
     val state by viewModel.uiState.collectAsState()
@@ -110,29 +111,44 @@ fun GameScreen(viewModel: GameViewModel = viewModel()) {
                 }
             }
         }
-        .padding(16.dp)
 
-    // --- LAYOUT SELECTION ---
-    if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-        LandscapeGameLayout(
-            state = state,
-            viewModel = viewModel,
-            modifier = swipeModifier,
-            isOverlayVisible = isOverlayVisible,
-            onSettingsClick = { showSettings = true },
-            onUndoClick = { viewModel.undoLastMove() },
-            onResetClick = { viewModel.toggleUserReset(true) }
-        )
-    } else {
-        PortraitGameLayout(
-            state = state,
-            viewModel = viewModel,
-            modifier = swipeModifier,
-            isOverlayVisible = isOverlayVisible,
-            onSettingsClick = { showSettings = true },
-            onUndoClick = { viewModel.undoLastMove() },
-            onResetClick = { viewModel.toggleUserReset(true) }
-        )
+    // --- SCAFFOLD WRAPPER ---
+    Scaffold(
+        containerColor = GameColors.Background,
+        bottomBar = {
+            if (canRequestAds) {
+                AdaptiveBannerAd()
+            }
+        }
+    ) { paddingValues ->
+        
+        // Combine swipe logic with safe Scaffold padding and standard layout padding
+        val layoutModifier = swipeModifier
+            .padding(paddingValues)
+            .padding(16.dp)
+            
+        // --- LAYOUT SELECTION ---
+        if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            LandscapeGameLayout(
+                state = state,
+                viewModel = viewModel,
+                modifier = layoutModifier,
+                isOverlayVisible = isOverlayVisible,
+                onSettingsClick = { showSettings = true },
+                onUndoClick = { viewModel.undoLastMove() },
+                onResetClick = { viewModel.toggleUserReset(true) }
+            )
+        } else {
+            PortraitGameLayout(
+                state = state,
+                viewModel = viewModel,
+                modifier = layoutModifier,
+                isOverlayVisible = isOverlayVisible,
+                onSettingsClick = { showSettings = true },
+                onUndoClick = { viewModel.undoLastMove() },
+                onResetClick = { viewModel.toggleUserReset(true) }
+            )
+        }
     }
 
     // --- SETTINGS DIALOG ---
@@ -201,33 +217,39 @@ private fun PortraitGameLayout(
             horizontalArrangement = Arrangement.SpaceBetween, // Aligned Right, under the scores
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Undo Button
-            ControlIcon(
-                icon = { 
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_undo),
-                        contentDescription = stringResource(R.string.desc_undo),
-                        tint = if (state.canUndo && !isOverlayVisible) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
-                    )
-                },
-                enabled = state.canUndo && !isOverlayVisible,
-                onClick = onUndoClick
-            )
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Row(
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Undo Button
+                ControlIcon(
+                    icon = { 
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_undo),
+                            contentDescription = stringResource(R.string.desc_undo),
+                            tint = if (state.canUndo && !isOverlayVisible) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
+                        )
+                    },
+                    enabled = state.canUndo && !isOverlayVisible,
+                    onClick = onUndoClick
+                )
 
-            // Reset Button
-            ControlIcon(
-                icon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_reset),
-                        contentDescription = "New Game",
-                        tint = GameColors.TextDark
-                    ) 
-                },
-                enabled = !isOverlayVisible,
-                onClick = onResetClick
-            )
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Reset Button
+                ControlIcon(
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_reset),
+                            contentDescription = "New Game",
+                            tint = if (!state.isUserReset && !isOverlayVisible) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
+                        ) 
+                    },
+                    enabled = !isOverlayVisible,
+                    onClick = onResetClick
+                )
+            }
 
             // Settings Button
             ControlIcon(
@@ -238,7 +260,7 @@ private fun PortraitGameLayout(
                        tint = GameColors.TextDark
                    )
                 },
-                enabled = !isOverlayVisible,
+                enabled = true,
                 onClick = onSettingsClick
             )
         }

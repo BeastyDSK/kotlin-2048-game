@@ -7,28 +7,41 @@ import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 
 class AnalyticsManager(private val context: Context) {
-// FIX 1: Initialize immediately (don't leave it null)
-    private val firebaseAnalytics: FirebaseAnalytics = FirebaseAnalytics.getInstance(context)
 
-    // Call this ONLY after the user clicks "Accept" or if consent is already saved
-    // fun initializeAndEnable() {
-    //     try {
-    //         // 1. Get the instance (this is safe now because auto-collection is off in Manifest)
-    //         firebaseAnalytics = FirebaseAnalytics.getInstance(context)
+    // Lazy initialization ensures we don't touch the SDK until we actually need it
+    private val firebaseAnalytics: FirebaseAnalytics by lazy {
+        FirebaseAnalytics.getInstance(context)
+    }
+
+    private val crashlytics: FirebaseCrashlytics by lazy {
+        FirebaseCrashlytics.getInstance()
+    }
+
+    private fun applyConsentToFirebase() {
+        val consentMap = mapOf(
+            FirebaseAnalytics.ConsentType.ANALYTICS_STORAGE to FirebaseAnalytics.ConsentStatus.GRANTED,
+            FirebaseAnalytics.ConsentType.AD_STORAGE to FirebaseAnalytics.ConsentStatus.GRANTED,
+            FirebaseAnalytics.ConsentType.AD_USER_DATA to FirebaseAnalytics.ConsentStatus.GRANTED,
+            FirebaseAnalytics.ConsentType.AD_PERSONALIZATION to FirebaseAnalytics.ConsentStatus.GRANTED
+        )
+        firebaseAnalytics.setConsent(consentMap)
+    }
+
+    fun initializeAndEnable() {
+        try {
+            applyConsentToFirebase()
+            firebaseAnalytics.setAnalyticsCollectionEnabled(true)
+            crashlytics.isCrashlyticsCollectionEnabled = true
             
-    //         // 2. Explicitly ENABLE collection
-    //         firebaseAnalytics?.setAnalyticsCollectionEnabled(true)
-    //         FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
-            
-    //         Log.d("AnalyticsManager", "Consent granted. Analytics enabled.")
-    //     } catch (e: Exception) {
-    //         // Log error but don't crash if Firebase fails to init (e.g. no google-services.json)
-    //         Log.e("AnalyticsManager", "Failed to initialize Firebase", e)
-    //     }
-    // }
+            Log.d("AnalyticsManager", "Consent granted. Analytics & Crashlytics enabled.")
+        } catch (e: Exception) {
+            // This catches issues if Google Services is missing entirely on the device
+            Log.e("AnalyticsManager", "Failed to enable Firebase", e)
+        }
+    }
 
     fun logGameStart() {
-        firebaseAnalytics?.logEvent("game_start", null)
+        firebaseAnalytics.logEvent("game_start", null)
     }
 
     fun logGameOver(score: Int, maxTile: Int) {
@@ -36,19 +49,18 @@ class AnalyticsManager(private val context: Context) {
             putInt(FirebaseAnalytics.Param.SCORE, score)
             putInt("max_tile", maxTile)
         }
-        firebaseAnalytics?.logEvent(FirebaseAnalytics.Event.LEVEL_END, bundle)
+        firebaseAnalytics.logEvent(FirebaseAnalytics.Event.LEVEL_END, bundle)
     }
 
-    // Call this only if the tile value is significant (e.g., >= 512)
     fun logTileReached(value: Int) {
         val bundle = Bundle().apply {
             putInt(FirebaseAnalytics.Param.LEVEL, value) // Using 'Level' as a proxy for Tile Value
             putString(FirebaseAnalytics.Param.ACHIEVEMENT_ID, "tile_$value")
         }
-        firebaseAnalytics?.logEvent(FirebaseAnalytics.Event.UNLOCK_ACHIEVEMENT, bundle)
+        firebaseAnalytics.logEvent(FirebaseAnalytics.Event.UNLOCK_ACHIEVEMENT, bundle)
     }
 
     fun logUndoUsed() {
-        firebaseAnalytics?.logEvent("undo_used", null)
+        firebaseAnalytics.logEvent("undo_used", null)
     }
 }
