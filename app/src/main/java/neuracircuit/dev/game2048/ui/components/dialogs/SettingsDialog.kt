@@ -15,6 +15,13 @@ import neuracircuit.dev.game2048.ui.theme.GameColors
 import kotlin.math.roundToInt
 import androidx.compose.ui.res.stringResource
 import neuracircuit.dev.game2048.R
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.platform.LocalContext
+import android.app.Activity
+import android.widget.Toast
+import neuracircuit.dev.game2048.data.ConsentManager
 
 @Composable
 fun SettingsDialog(
@@ -25,6 +32,11 @@ fun SettingsDialog(
     onHapticsChange: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val activity = context as Activity
+    val consentManager = remember { ConsentManager(activity) }
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             shape = RoundedCornerShape(16.dp),
@@ -97,6 +109,61 @@ fun SettingsDialog(
                             uncheckedThumbColor = GameColors.TextDark,
                             uncheckedTrackColor = GameColors.GridBackground
                         )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // --- LEGAL SECTION ---
+                HorizontalDivider(color = GameColors.GridBackground, thickness = 2.dp)
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Privacy Policy",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = GameColors.TextDark,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://beastydsk.github.io/2048/privacy-policy.html")
+                        }
+                    )
+                    
+                    Text(
+                        text = "Terms of Service",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = GameColors.TextDark,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier.clickable {
+                            uriHandler.openUri("https://beastydsk.github.io/2048/tos.html")
+                        }
+                    )
+                }
+
+                if (consentManager.isPrivacyOptionsRequired) {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = "Ad and data preferences",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = GameColors.TextDark,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier.clickable {
+                            activity?.let { act ->
+                                consentManager.showPrivacyOptionsForm(act) {
+                                    // Form dismissed
+                                    Toast.makeText(context, "Preferences updated.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
                     )
                 }
 

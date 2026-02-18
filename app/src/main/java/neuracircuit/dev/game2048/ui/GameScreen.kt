@@ -42,7 +42,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import neuracircuit.dev.game2048.ui.components.NewGameOverlay
 import neuracircuit.dev.game2048.ads.AdaptiveBannerAd
 import neuracircuit.dev.game2048.ads.AdManager
-import kotlinx.coroutines.delay
 import neuracircuit.dev.game2048.ads.RewardType
 import neuracircuit.dev.game2048.ui.components.UndoAdOverlay
 
@@ -309,18 +308,58 @@ private fun PortraitGameLayout(
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Undo Button with Freemium Badge
-                ControlIcon(
-                    icon = { 
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_undo),
-                            contentDescription = stringResource(R.string.desc_undo),
-                            tint = if (state.canUndo && !isOverlayVisible) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
-                        )
-                    },
-                    enabled = state.canUndo && !isOverlayVisible,
-                    onClick = onUndoClick
-                )
+                // Undo Button with OVERFLOW Dynamic Badge
+                Box {
+                    ControlIcon(
+                        icon = { 
+                            val iconTint = if (state.freeUndosLeft == 0 && canRequestAds && state.canUndo && !isOverlayVisible) {
+                                Color(0xFFFFD700) 
+                            } else if (state.canUndo && !isOverlayVisible) {
+                                GameColors.TextDark 
+                            } else {
+                                Color.Gray.copy(alpha = 0.5f)
+                            }
+                            
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_undo),
+                                contentDescription = stringResource(R.string.desc_undo),
+                                tint = iconTint
+                            )
+                        },
+                        enabled = state.canUndo && !isOverlayVisible,
+                        onClick = onUndoClick
+                    )
+                    
+                    // The Number or AD Badge Overlay (Now OUTSIDE the ControlIcon)
+                    if (state.canUndo && !isOverlayVisible) {
+                        val badgeText = when {
+                            state.freeUndosLeft > 0 -> state.freeUndosLeft.toString()
+                            canRequestAds -> "AD"
+                            else -> null
+                        }
+                        
+                        if (badgeText != null) {
+                            Surface(
+                                color = if (badgeText == "AD") Color(0xFFE76F51) else GameColors.TextDark, 
+                                shape = androidx.compose.foundation.shape.CircleShape, // Perfect Circle
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd) // Move to top-right corner
+                                    .offset(x = 6.dp, y = (-6).dp) // BREAKS OUT of the bounds
+                                    .size(20.dp) // Fixed size so it never stretches
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = badgeText,
+                                        color = Color.White,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.width(16.dp))
 
@@ -413,17 +452,58 @@ private fun LandscapeGameLayout(
 
             // Controls
             Row(horizontalArrangement = Arrangement.Center) {
-                ControlIcon(
-                    icon = { 
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_undo),
-                            contentDescription = stringResource(R.string.desc_undo),
-                            tint = if (state.canUndo && !isOverlayVisible) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
-                        )
-                    },
-                    enabled = state.canUndo && !isOverlayVisible,
-                    onClick = onUndoClick
-                )
+                // Undo Button with OVERFLOW Dynamic Badge
+                Box {
+                    ControlIcon(
+                        icon = { 
+                            val iconTint = if (state.freeUndosLeft == 0 && canRequestAds && state.canUndo && !isOverlayVisible) {
+                                Color(0xFFFFD700) 
+                            } else if (state.canUndo && !isOverlayVisible) {
+                                GameColors.TextDark 
+                            } else {
+                                Color.Gray.copy(alpha = 0.5f)
+                            }
+                            
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_undo),
+                                contentDescription = stringResource(R.string.desc_undo),
+                                tint = iconTint
+                            )
+                        },
+                        enabled = state.canUndo && !isOverlayVisible,
+                        onClick = onUndoClick
+                    )
+                    
+                    // The Number or AD Badge Overlay (Now OUTSIDE the ControlIcon)
+                    if (state.canUndo && !isOverlayVisible) {
+                        val badgeText = when {
+                            state.freeUndosLeft > 0 -> state.freeUndosLeft.toString()
+                            canRequestAds -> "AD"
+                            else -> null
+                        }
+                        
+                        if (badgeText != null) {
+                            Surface(
+                                color = if (badgeText == "AD") Color(0xFFE76F51) else GameColors.TextDark, 
+                                shape = androidx.compose.foundation.shape.CircleShape, // Perfect Circle
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd) // Move to top-right corner
+                                    .offset(x = 6.dp, y = (-6).dp) // BREAKS OUT of the bounds
+                                    .size(20.dp) // Fixed size so it never stretches
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = badgeText,
+                                        color = Color.White,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.width(16.dp))
 
