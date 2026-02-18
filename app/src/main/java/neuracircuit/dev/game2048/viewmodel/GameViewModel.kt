@@ -36,7 +36,8 @@ data class GameUiState(
     val volume: Float = 0.5f,
     val isHapticEnabled: Boolean = true,
     val canUndo: Boolean = false,
-    val isUserReset: Boolean = false
+    val isUserReset: Boolean = false,
+    val freeUndosLeft: Int = 3
 )
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
@@ -52,7 +53,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     val gameEvents: SharedFlow<GameEvent> = _gameEvents.asSharedFlow()
     
     private val history = ArrayDeque<Snapshot>()
-    private val maxHistorySize = 1
+    private val maxHistorySize = 5
 
     // Helper to track session-based achievements so we don't log "512 reached" multiple times per game
     private val reachedTilesSession = mutableSetOf<Int>()
@@ -63,6 +64,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val currentGrid = savedGame?.grid ?: emptyList()
         val currentScore = savedGame?.score ?: 0
         val currentHigh = savedGame?.highScore ?: storage.getHighScore()
+        val currentFreeUndos = savedGame?.freeUndosLeft ?: 3
         val settings = storage.getSettings()
 
         if (currentGrid.isNotEmpty()) {
@@ -70,7 +72,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = GameUiState(
                     highScore = currentHigh,
                     volume = settings.volume,
-                    isHapticEnabled = settings.hapticsEnabled
+                    isHapticEnabled = settings.hapticsEnabled,
+                    freeUndosLeft = 3
                 )
                 spawnTile(2)
                 storage.clearActiveGame()
@@ -83,14 +86,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     volume = settings.volume,
                     isHapticEnabled = settings.hapticsEnabled,
                     hasWon = has2048,
-                    keepPlaying = has2048
+                    keepPlaying = has2048,
+                    freeUndosLeft = currentFreeUndos
                 )
             }
         } else {
             _uiState.value = GameUiState(
                 highScore = currentHigh,
                 volume = settings.volume,
-                isHapticEnabled = settings.hapticsEnabled
+                isHapticEnabled = settings.hapticsEnabled,
+                freeUndosLeft = 3
             )
             spawnTile(2)
         }
@@ -125,11 +130,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 score = snapshot.score,
                 isGameOver = false,
                 canUndo = history.isNotEmpty(),
+                freeUndosLeft = if (it.freeUndosLeft > 0) it.freeUndosLeft - 1 else 0
             )
         }
         
         soundManager.playMove(_uiState.value.volume)
-        storage.saveData(snapshot.tiles, snapshot.score)
+        storage.saveData(snapshot.tiles, snapshot.score, _uiState.value.freeUndosLeft)
+    }
+
+    fun grantMoreUndos(amount: Int = 3) {
+        _uiState.update { it.copy(freeUndosLeft = it.freeUndosLeft + amount) }
     }
 
     // --- Settings Actions ---
@@ -170,6 +180,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 grid = emptyList(),
                 score = 0,
                 isUserReset = false,
+                freeUndosLeft = 3
             )
         }
         spawnTile(2)
@@ -229,10 +240,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                      if (_uiState.value.isHapticEnabled) _gameEvents.emit(GameEvent.Victory)
                 }
 
-                storage.saveData(result.finalGrid, newScore)
+                storage.saveData(result.finalGrid, newScore, _uiState.value.freeUndosLeft)
                 delay(50)
                 spawnTile(1)
-                storage.saveData(_uiState.value.grid, _uiState.value.score)
+                storage.saveData(_uiState.value.grid, _uiState.value.score, _uiState.value.freeUndosLeft)
                 checkGameOver()
             }
         }

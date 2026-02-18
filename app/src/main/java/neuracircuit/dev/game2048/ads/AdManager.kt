@@ -30,15 +30,21 @@ import com.google.android.gms.ads.AdListener
 object AdConfig {
     const val BANNER_ID = BuildConfig.APP_BOTTOM_BANNER_AD_ID
     const val INTERSTITIAL_RESET_ID = BuildConfig.GAMEOVER_RESET_INTERSTITIAL_AD_ID
-    const val REWARDED_UNDO_ID = BuildConfig.UNDO_LAST_MOVE_REWARDED_AD_ID
-//    val REWARDED_INTERSTITIAL_UNDO_ID = BuildConfig.UNDO_REWARDED_INTERSTITIAL_AD_ID
+    const val REWARDED_REVIVE_ID = BuildConfig.UNDO_LAST_MOVE_REWARDED_AD_ID
+    const val REWARDED_UNDO_ID = BuildConfig.UNDO_REWARDED_AD_ID
+}
+
+enum class RewardType {
+    UNDO,
+    REVIVE
 }
 
 class AdManager(context: Context) {
     private val appContext = context.applicationContext
 
     private var interstitialAd: InterstitialAd? = null
-    private var rewardedAd: RewardedAd? = null
+    private var rewardedReviveAd: RewardedAd? = null
+    private var rewardedUndoAd: RewardedAd? = null
 
     // --- INTERSTITIAL LOGIC (Game Over / Reset) ---
     fun loadInterstitialAd() {
@@ -75,38 +81,68 @@ class AdManager(context: Context) {
     }
 
     // --- REWARDED LOGIC (Undo Move) ---
-    fun loadRewardedAd() {
+    fun loadRewardedAd(rewardType: RewardType = RewardType.UNDO) {
+        val adUnitId = when (rewardType) {
+            RewardType.REVIVE -> AdConfig.REWARDED_REVIVE_ID
+            RewardType.UNDO -> AdConfig.REWARDED_UNDO_ID
+        }
+
         val adRequest = AdRequest.Builder().build()
-        RewardedAd.load(appContext, AdConfig.REWARDED_UNDO_ID, adRequest, object : RewardedAdLoadCallback() {
+        RewardedAd.load(appContext, adUnitId, adRequest, object : RewardedAdLoadCallback() {
             override fun onAdLoaded(ad: RewardedAd) {
-                rewardedAd = ad
+                when (rewardType) {
+                    RewardType.REVIVE -> rewardedReviveAd = ad
+                    RewardType.UNDO -> rewardedUndoAd = ad
+                }
             }
+
             override fun onAdFailedToLoad(error: LoadAdError) {
-                rewardedAd = null
+                when (rewardType) {
+                    RewardType.REVIVE -> rewardedReviveAd = null
+                    RewardType.UNDO -> rewardedUndoAd = null
+                }
             }
         })
     }
 
-    fun showRewardedAd(activity: Activity, onRewardEarned: () -> Unit, onDismissed: () -> Unit) {
-        if (rewardedAd != null) {
-            rewardedAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
+    fun showRewardedAd(
+        activity: Activity,
+        rewardType: RewardType = RewardType.UNDO,
+        onRewardEarned: () -> Unit,
+        onDismissed: () -> Unit
+    ) {
+        val adToShow = when (rewardType) {
+            RewardType.REVIVE -> rewardedReviveAd
+            RewardType.UNDO -> rewardedUndoAd
+        }
+
+        if (adToShow != null) {
+            adToShow.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
-                    rewardedAd = null
+                    when (rewardType) {
+                        RewardType.REVIVE -> rewardedReviveAd = null
+                        RewardType.UNDO -> rewardedUndoAd = null
+                    }
                     onDismissed()
-                    loadRewardedAd() // Auto-reload next rewarded ad
+                    loadRewardedAd(rewardType)
                 }
+
                 override fun onAdFailedToShowFullScreenContent(error: AdError) {
-                    rewardedAd = null
+                    when (rewardType) {
+                        RewardType.REVIVE -> rewardedReviveAd = null
+                        RewardType.UNDO -> rewardedUndoAd = null
+                    }
                     onDismissed()
-                    loadRewardedAd()
+                    loadRewardedAd(rewardType)
                 }
             }
-            rewardedAd?.show(activity) { _ ->
+
+            adToShow.show(activity) {
                 onRewardEarned()
             }
         } else {
             onDismissed()
-            loadRewardedAd()
+            loadRewardedAd(rewardType)
         }
     }
 }

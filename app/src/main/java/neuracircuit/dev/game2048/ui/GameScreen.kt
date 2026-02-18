@@ -43,6 +43,8 @@ import neuracircuit.dev.game2048.ui.components.NewGameOverlay
 import neuracircuit.dev.game2048.ads.AdaptiveBannerAd
 import neuracircuit.dev.game2048.ads.AdManager
 import kotlinx.coroutines.delay
+import neuracircuit.dev.game2048.ads.RewardType
+import neuracircuit.dev.game2048.ui.components.UndoAdOverlay
 
 @Composable
 fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = false) {
@@ -52,6 +54,9 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
 
     // State to toggle Settings Dialog
     var showSettings by remember { mutableStateOf(false) }
+    
+    // State to toggle the Rewarded Ad Undo Dialog
+    var showUndoAdOverlay by remember { mutableStateOf(false) }
 
     // Haptic Feedback Hook
     val haptic = LocalHapticFeedback.current
@@ -73,9 +78,8 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
     LaunchedEffect(canRequestAds) {
         if (canRequestAds) {
             adManager.loadInterstitialAd()
-
-            delay(5000)
-            adManager.loadRewardedAd()
+            adManager.loadRewardedAd(RewardType.REVIVE)
+            adManager.loadRewardedAd(RewardType.UNDO)
         }
     }
 
@@ -96,11 +100,36 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
                 onRewardEarned = { 
                     viewModel.undoLastMove()
                 },
-                onDismissed = {
-                    Toast.makeText(context, "Ad was not ready or was closed early.", Toast.LENGTH_SHORT).show()
-                }
+                onDismissed = { },
+                rewardType = RewardType.REVIVE
             )
         }
+    }
+
+    // --- FREEMIUM UNDO LOGIC ---
+    val onUndoClick = {
+        if (state.freeUndosLeft > 0 || !canRequestAds) {
+            viewModel.undoLastMove()
+        } else {
+            showUndoAdOverlay = true
+        }
+    }
+
+    val onUndoAdDismiss = {
+        showUndoAdOverlay = false
+    }
+
+    val onUndoAdConfirm = {
+        showUndoAdOverlay = false
+        adManager.showRewardedAd(
+            activity = activity,
+            onRewardEarned = {
+                viewModel.grantMoreUndos(1)
+                // viewModel.undoLastMove()
+            },
+            onDismissed = { },
+            rewardType = RewardType.UNDO
+        )
     }
 
     // Listen for Merge Events from ViewModel
@@ -175,11 +204,14 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
                 modifier = layoutModifier,
                 isOverlayVisible = isOverlayVisible,
                 onSettingsClick = { showSettings = true },
-                onUndoClick = { viewModel.undoLastMove() },
+                onUndoClick = onUndoClick,
                 onResetClick = { viewModel.toggleUserReset(true) },
                 handleGameReset = handleGameReset,
                 onReviveRequest = handleReviveRequest,
-                canRequestAds = canRequestAds
+                canRequestAds = canRequestAds,
+                showUndoAdOverlay = showUndoAdOverlay,
+                onUndoAdDismiss = onUndoAdDismiss,
+                onUndoAdConfirm = onUndoAdConfirm,
             )
         } else {
             PortraitGameLayout(
@@ -188,11 +220,14 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
                 modifier = layoutModifier,
                 isOverlayVisible = isOverlayVisible,
                 onSettingsClick = { showSettings = true },
-                onUndoClick = { viewModel.undoLastMove() },
+                onUndoClick = onUndoClick,
                 onResetClick = { viewModel.toggleUserReset(true) },
                 handleGameReset = handleGameReset,
                 onReviveRequest = handleReviveRequest,
-                canRequestAds = canRequestAds
+                canRequestAds = canRequestAds,
+                showUndoAdOverlay = showUndoAdOverlay,
+                onUndoAdDismiss = onUndoAdDismiss,
+                onUndoAdConfirm = onUndoAdConfirm,
             )
         }
     }
@@ -236,7 +271,10 @@ private fun PortraitGameLayout(
     onResetClick: () -> Unit,
     handleGameReset: () -> Unit,
     canRequestAds: Boolean,
-    onReviveRequest: () -> Unit
+    onReviveRequest: () -> Unit,
+    showUndoAdOverlay: Boolean,
+    onUndoAdDismiss: () -> Unit,
+    onUndoAdConfirm: () -> Unit
     ) {
     Column(
         modifier = modifier,
@@ -271,7 +309,7 @@ private fun PortraitGameLayout(
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Undo Button
+                // Undo Button with Freemium Badge
                 ControlIcon(
                     icon = { 
                         Icon(
@@ -323,7 +361,10 @@ private fun PortraitGameLayout(
             modifier = Modifier.aspectRatio(1f),
             handleGameReset = handleGameReset,
             onReviveRequest = onReviveRequest,
-            canRequestAds = canRequestAds
+            canRequestAds = canRequestAds,
+            showUndoAdOverlay = showUndoAdOverlay,
+            onUndoAdDismiss = onUndoAdDismiss,
+            onUndoAdConfirm = onUndoAdConfirm,
         )
     }
 }
@@ -339,7 +380,10 @@ private fun LandscapeGameLayout(
     onResetClick: () -> Unit,
     handleGameReset: () -> Unit,
     canRequestAds: Boolean,
-    onReviveRequest: () -> Unit
+    onReviveRequest: () -> Unit,
+    showUndoAdOverlay: Boolean,
+    onUndoAdDismiss: () -> Unit,
+    onUndoAdConfirm: () -> Unit
 ) {
     Row(
         modifier = modifier,
@@ -428,7 +472,10 @@ private fun LandscapeGameLayout(
                     .fillMaxHeight(), // Ensure it uses full height
                 handleGameReset = handleGameReset,
                 onReviveRequest = onReviveRequest,
-                canRequestAds = canRequestAds
+                canRequestAds = canRequestAds,
+                showUndoAdOverlay = showUndoAdOverlay,
+                onUndoAdDismiss = onUndoAdDismiss,
+                onUndoAdConfirm = onUndoAdConfirm,
             )
         }
     }
@@ -443,7 +490,10 @@ fun GameBoard(
     modifier: Modifier,
     handleGameReset: () -> Unit,
     canRequestAds: Boolean,
-    onReviveRequest: () -> Unit
+    onReviveRequest: () -> Unit,
+    showUndoAdOverlay: Boolean,
+    onUndoAdDismiss: () -> Unit,
+    onUndoAdConfirm: () -> Unit
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -489,6 +539,14 @@ fun GameBoard(
                 onNewGame = handleGameReset
             )
         }
+
+        if (showUndoAdOverlay) {
+            UndoAdOverlay(
+                onDismiss = onUndoAdDismiss,
+                onConfirm = onUndoAdConfirm
+            )
+        }
+
     }
 }
 

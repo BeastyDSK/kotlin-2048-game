@@ -39,14 +39,14 @@ android {
         val appBottomBannerId = localProperties.getProperty("APP_BOTTOM_BANNER_AD_ID") ?: "ca-app-pub-3940256099942544/6300978111"
         val gameoverResetInterstitialId = localProperties.getProperty("GAMEOVER_RESET_INTERSTITIAL_AD_ID") ?: "ca-app-pub-3940256099942544/1033173712"
         val undoLastMoveRewardedAdId = localProperties.getProperty("UNDO_LAST_MOVE_REWARDED_AD_ID") ?: "ca-app-pub-3940256099942544/5224354917"
-        val undoRewardedInterstitialAdId = localProperties.getProperty("UNDO_REWARDED_INTERSTITIAL_AD_ID") ?: "ca-app-pub-3940256099942544/5224354917"
+        val undoRewardedAdId = localProperties.getProperty("UNDO_REWARDED_AD_ID") ?: "ca-app-pub-3940256099942544/5224354917"
         // val unityGameId = localProperties.getProperty("UNITY_GAME_ID") ?: "6028752"
 
         buildConfigField("String", "ADMOB_APP_ID", "\"$admobAppId\"")
         buildConfigField("String", "APP_BOTTOM_BANNER_AD_ID", "\"$appBottomBannerId\"")
         buildConfigField("String", "GAMEOVER_RESET_INTERSTITIAL_AD_ID", "\"$gameoverResetInterstitialId\"")
         buildConfigField("String", "UNDO_LAST_MOVE_REWARDED_AD_ID", "\"$undoLastMoveRewardedAdId\"")
-        buildConfigField("String", "UNDO_REWARDED_INTERSTITIAL_AD_ID", "\"$undoRewardedInterstitialAdId\"")
+        buildConfigField("String", "UNDO_REWARDED_AD_ID", "\"$undoRewardedAdId\"")
 
         // Inject App ID into Manifest
         manifestPlaceholders["ADMOB_APP_ID"] = admobAppId

@@ -4,19 +4,38 @@
     <string name="label_score">SCORE</string>
     <string name="label_best">BEST</string>
     
+    <!-- GameOverOverlay -->
     <string name="msg_game_over">Game Over</string>
-    <string name="msg_you_won">You Won!</string>
+    <string name="btn_watch_ad_to_undo">Watch Ad to Undo</string>
     <string name="btn_try_again">Try Again</string>
+    <string name="cnt_desc_watch_ad">Watch Ad</string>
+    
+
+    <!-- NewGameOverlay -->
+    <string name="msg_you_won">You Won!</string>
     <string name="btn_keep_playing">Keep Playing</string>
     <string name="btn_new_game">New Game</string>
+
+    <!-- UndoAdOverlay -->
+    <string name="msg_out_of_undos">Out of free Undos?</string>
+    <string name="msg_watch_ad_undo">Watch a short ad to get 1 more Undo?</string>
+    <string name="btn_watch">Watch</string>
+
+    <!-- RestartOverlay -->
+    <string name="restart">Restart?</string>
+    <string name="msg_confirm_restart">Are you sure you want to start over? Your current progress will be lost.</string>
+    <string name="btn_cancel">Cancel</string>
     
+    <!-- Settings -->
     <string name="title_settings">Settings</string>
     <string name="label_volume">Volume</string>
     <string name="label_vibration">Vibration</string>
     <string name="btn_close">Close</string>
     
+    <!-- GameScreen -->
     <string name="desc_undo">Undo Move</string>
     <string name="desc_settings">Open Settings</string>
     
+    <!-- back to exit -->
     <string name="msg_double_back_exit">Press back again to exit</string>
 </resources>

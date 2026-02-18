@@ -12,7 +12,7 @@ class GameStorage(context: Context) {
     // Configured Json to be lenient
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun saveData(grid: List<Tile>, score: Int) {
+    fun saveData(grid: List<Tile>, score: Int, freeUndosLeft: Int) {
         prefs.edit {
 
             // 1. Save Score
@@ -23,6 +23,9 @@ class GameStorage(context: Context) {
             if (score > currentHigh) {
                 putInt("high_score", score)
             }
+
+            // 3. Save Free Undos Left
+            putInt("free_undos_left", freeUndosLeft)
 
             // 3. Serialize Grid
             val gridJson = json.encodeToString(grid)
@@ -43,10 +46,11 @@ class GameStorage(context: Context) {
         val gridJson = prefs.getString("game_board", null) ?: return null
         val score = prefs.getInt("score", 0)
         val highScore = prefs.getInt("high_score", 0)
+        val freeUndosLeft = prefs.getInt("free_undos_left", 3)
 
         return try {
             val grid = json.decodeFromString<List<Tile>>(gridJson)
-            SavedGame(grid, score, highScore)
+            SavedGame(grid, score, highScore, freeUndosLeft)
         } catch (e: Exception) {
             // Handle corruption (e.g., manual JSON editing or bad update)
             e.printStackTrace()
@@ -76,5 +80,5 @@ class GameStorage(context: Context) {
 }
 
 // Helper DTO for loading
-data class SavedGame(val grid: List<Tile>, val score: Int, val highScore: Int)
+data class SavedGame(val grid: List<Tile>, val score: Int, val highScore: Int, val freeUndosLeft: Int = 3)
 data class SavedSettings(val volume: Float, val hapticsEnabled: Boolean)

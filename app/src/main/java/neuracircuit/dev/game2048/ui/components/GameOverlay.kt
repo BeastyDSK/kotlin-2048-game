@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.painterResource
 import neuracircuit.dev.game2048.R
+import androidx.compose.ui.res.stringResource
 
 // Common constants for consistent styling
 private val OverlayCornerRadius = 16.dp
@@ -39,7 +40,7 @@ fun GameOverOverlay(
             modifier = Modifier.padding(32.dp)
         ) {
             Text(
-                text = "Game Over!",
+                text = stringResource(R.string.msg_game_over),
                 fontSize = 48.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = GameColors.TextDark, // Dark Brown/Black
@@ -59,12 +60,12 @@ fun GameOverOverlay(
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_play_arrow),
-                        contentDescription = "Watch Ad",
+                        contentDescription = stringResource(R.string.cnt_desc_watch_ad),
                         tint = Color.White
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Watch Ad to Undo",
+                        text = stringResource(R.string.btn_watch_ad_to_undo),
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
@@ -77,7 +78,7 @@ fun GameOverOverlay(
             Button(
                 onClick = onRestart,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = GameColors.TextDark, // Or a specific "Try Again" color
+                    containerColor = GameColors.TextDark,
                     contentColor = Color.White
                 ),
                 shape = ButtonShape,
@@ -85,7 +86,7 @@ fun GameOverOverlay(
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
             ) {
                 Text(
-                    "Try Again", 
+                    text = stringResource(R.string.btn_try_again),
                     fontSize = 18.sp, 
                     fontWeight = FontWeight.Bold
                 )
@@ -109,7 +110,7 @@ fun VictoryOverlay(onKeepPlaying: () -> Unit, onNewGame: () -> Unit) {
             modifier = Modifier.padding(32.dp)
         ) {
             Text(
-                text = "You Won!",
+                text = stringResource(R.string.msg_you_won),
                 fontSize = 56.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
@@ -136,7 +137,7 @@ fun VictoryOverlay(onKeepPlaying: () -> Unit, onNewGame: () -> Unit) {
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
             ) {
                 Text(
-                    "Keep Playing", 
+                    stringResource(R.string.btn_keep_playing), 
                     fontSize = 18.sp, 
                     fontWeight = FontWeight.Bold
                 )
@@ -155,7 +156,7 @@ fun VictoryOverlay(onKeepPlaying: () -> Unit, onNewGame: () -> Unit) {
                 modifier = Modifier.height(50.dp).fillMaxWidth(0.7f)
             ) {
                 Text(
-                    "New Game", 
+                    stringResource(R.string.btn_new_game), 
                     fontSize = 16.sp, 
                     fontWeight = FontWeight.SemiBold
                 )
@@ -184,7 +185,7 @@ fun NewGameOverlay(onKeepPlaying: () -> Unit, onNewGame: () -> Unit) {
                 modifier = Modifier.padding(24.dp)
             ) {
                 Text(
-                    "Restart?",
+                    text = stringResource(R.string.restart),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     color = GameColors.TextDark
@@ -193,7 +194,7 @@ fun NewGameOverlay(onKeepPlaying: () -> Unit, onNewGame: () -> Unit) {
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 Text(
-                    text = "Are you sure you want to start over? Your current progress will be lost.",
+                    text = stringResource(R.string.msg_confirm_restart),
                     fontSize = 16.sp,
                     color = Color.Gray,
                     textAlign = TextAlign.Center, // Crucial for multi-line text
@@ -213,7 +214,7 @@ fun NewGameOverlay(onKeepPlaying: () -> Unit, onNewGame: () -> Unit) {
                         shape = ButtonShape
                     ) {
                         Text(
-                            "Cancel", 
+                            text = stringResource(R.string.btn_keep_playing),
                             color = Color.Gray, 
                             fontSize = 16.sp, 
                             fontWeight = FontWeight.SemiBold
@@ -230,7 +231,90 @@ fun NewGameOverlay(onKeepPlaying: () -> Unit, onNewGame: () -> Unit) {
                         modifier = Modifier.weight(1f).height(48.dp)
                     ) {
                         Text(
-                            "Restart", 
+                            text = stringResource(R.string.btn_new_game),
+                            color = Color.White, 
+                            fontSize = 16.sp, 
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UndoAdOverlay(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f)) // Dim background
+            .padding(24.dp), // Safe area
+        contentAlignment = Alignment.Center
+    ) {
+        // Card-like container for the dialog
+        Card(
+            shape = RoundedCornerShape(OverlayCornerRadius),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.msg_out_of_undos),
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    color = GameColors.TextDark,
+                    lineHeight = 32.sp
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text(
+                    text = stringResource(R.string.msg_watch_ad_undo),
+                    fontSize = 16.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center, // Crucial for multi-line text
+                    lineHeight = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Cancel
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = ButtonShape
+                    ) {
+                        Text(
+                            stringResource(R.string.btn_cancel), 
+                            color = Color.Gray, 
+                            fontSize = 16.sp, 
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    
+                    // Confirm / New Game Button
+                    Button(
+                        onClick = onConfirm,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = GameColors.TextDark
+                        ),
+                        shape = ButtonShape,
+                        modifier = Modifier.weight(1f).height(48.dp)
+                    ) {
+                        Text(
+                            stringResource(R.string.btn_watch), 
                             color = Color.White, 
                             fontSize = 16.sp, 
                             fontWeight = FontWeight.Bold
