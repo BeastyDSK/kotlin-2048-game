@@ -14,13 +14,19 @@ import androidx.compose.ui.unit.sp
 import neuracircuit.dev.game2048.ui.theme.GameColors
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.painterResource
+import neuracircuit.dev.game2048.R
 
 // Common constants for consistent styling
 private val OverlayCornerRadius = 16.dp
 private val ButtonShape = RoundedCornerShape(8.dp)
 
 @Composable
-fun GameOverOverlay(onRestart: () -> Unit) {
+fun GameOverOverlay(
+    onRestart: () -> Unit,
+    canRevive: Boolean = false,
+    onRevive: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -42,6 +48,32 @@ fun GameOverOverlay(onRestart: () -> Unit) {
             
             Spacer(modifier = Modifier.height(24.dp))
             
+            if (canRevive) {
+                Button(
+                    onClick = onRevive,
+                    colors = ButtonDefaults.buttonColors(containerColor = GameColors.tileColor(2048)), // Uses the gold 2048 color
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier
+                        // .fillMaxWidth(0.7f)
+                        .height(56.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_play_arrow),
+                        contentDescription = "Watch Ad",
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Watch Ad to Undo",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             Button(
                 onClick = onRestart,
                 colors = ButtonDefaults.buttonColors(

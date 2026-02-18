@@ -37,9 +37,12 @@ import androidx.compose.ui.res.stringResource
 import neuracircuit.dev.game2048.R
 import androidx.compose.ui.unit.min
 import android.content.res.Configuration
+import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalConfiguration
 import neuracircuit.dev.game2048.ui.components.NewGameOverlay
-import neuracircuit.dev.game2048.ads.AdaptiveBannerAd // Added Banner Ad Import
+import neuracircuit.dev.game2048.ads.AdaptiveBannerAd
+import neuracircuit.dev.game2048.ads.AdManager
+import kotlinx.coroutines.delay
 
 @Composable
 fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = false) {
@@ -55,6 +58,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
 
     // double back to exit
     val context = LocalContext.current
+    val activity = LocalActivity.current as Activity
     
     // Load resource for toast
     val doubleBackMsg = stringResource(R.string.msg_double_back_exit)
@@ -62,6 +66,42 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
     
     // Screen Orientation
     val configuration = LocalConfiguration.current
+
+    // --- AD MANAGER INITIALIZATION & LOADING ---
+    val adManager = remember { AdManager(context) }
+
+    LaunchedEffect(canRequestAds) {
+        if (canRequestAds) {
+            adManager.loadInterstitialAd()
+
+            delay(5000)
+            adManager.loadRewardedAd()
+        }
+    }
+
+    // --- DRY RESET LOGIC ---
+    val handleGameReset = {
+        viewModel.resetGame()
+
+        if (canRequestAds) {
+            adManager.showInterstitialAd(activity, onDismissed = {})
+        }
+    }
+
+    // --- DRY REVIVE LOGIC (Rewarded) ---
+    val handleReviveRequest = {
+        if (canRequestAds) {
+            adManager.showRewardedAd(
+                activity = activity,
+                onRewardEarned = { 
+                    viewModel.undoLastMove()
+                },
+                onDismissed = {
+                    Toast.makeText(context, "Ad was not ready or was closed early.", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
 
     // Listen for Merge Events from ViewModel
     LaunchedEffect(viewModel) {
@@ -136,7 +176,10 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
                 isOverlayVisible = isOverlayVisible,
                 onSettingsClick = { showSettings = true },
                 onUndoClick = { viewModel.undoLastMove() },
-                onResetClick = { viewModel.toggleUserReset(true) }
+                onResetClick = { viewModel.toggleUserReset(true) },
+                handleGameReset = handleGameReset,
+                onReviveRequest = handleReviveRequest,
+                canRequestAds = canRequestAds
             )
         } else {
             PortraitGameLayout(
@@ -146,7 +189,10 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
                 isOverlayVisible = isOverlayVisible,
                 onSettingsClick = { showSettings = true },
                 onUndoClick = { viewModel.undoLastMove() },
-                onResetClick = { viewModel.toggleUserReset(true) }
+                onResetClick = { viewModel.toggleUserReset(true) },
+                handleGameReset = handleGameReset,
+                onReviveRequest = handleReviveRequest,
+                canRequestAds = canRequestAds
             )
         }
     }
@@ -187,8 +233,11 @@ private fun PortraitGameLayout(
     isOverlayVisible: Boolean,
     onSettingsClick: () -> Unit,
     onUndoClick: () -> Unit,
-    onResetClick: () -> Unit
-) {
+    onResetClick: () -> Unit,
+    handleGameReset: () -> Unit,
+    canRequestAds: Boolean,
+    onReviveRequest: () -> Unit
+    ) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -271,8 +320,10 @@ private fun PortraitGameLayout(
         GameBoard(
             state = state,
             viewModel = viewModel,
-            modifier = Modifier
-                .aspectRatio(1f)
+            modifier = Modifier.aspectRatio(1f),
+            handleGameReset = handleGameReset,
+            onReviveRequest = onReviveRequest,
+            canRequestAds = canRequestAds
         )
     }
 }
@@ -285,7 +336,10 @@ private fun LandscapeGameLayout(
     isOverlayVisible: Boolean,
     onSettingsClick: () -> Unit,
     onUndoClick: () -> Unit,
-    onResetClick: () -> Unit
+    onResetClick: () -> Unit,
+    handleGameReset: () -> Unit,
+    canRequestAds: Boolean,
+    onReviveRequest: () -> Unit
 ) {
     Row(
         modifier = modifier,
@@ -371,7 +425,10 @@ private fun LandscapeGameLayout(
                 viewModel = viewModel,
                 modifier = Modifier
                     .aspectRatio(1f)
-                    .fillMaxHeight() // Ensure it uses full height
+                    .fillMaxHeight(), // Ensure it uses full height
+                handleGameReset = handleGameReset,
+                onReviveRequest = onReviveRequest,
+                canRequestAds = canRequestAds
             )
         }
     }
@@ -383,7 +440,10 @@ private fun LandscapeGameLayout(
 fun GameBoard(
     state: neuracircuit.dev.game2048.viewmodel.GameUiState,
     viewModel: GameViewModel,
-    modifier: Modifier
+    modifier: Modifier,
+    handleGameReset: () -> Unit,
+    canRequestAds: Boolean,
+    onReviveRequest: () -> Unit
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -411,21 +471,23 @@ fun GameBoard(
 
         // --- OVERLAYS ---
         
-        // 1. Victory Overlay (Priority over Game Over, but user can dismiss it)
+        // The remodeled logic neatly injects 'handleGameReset' into all 3 Overlays
         if (state.hasWon && !state.keepPlaying) {
             VictoryOverlay(
                 onKeepPlaying = { viewModel.keepPlaying() },
-                onNewGame = { viewModel.resetGame() }
+                onNewGame = handleGameReset
             )
         } else if (state.isGameOver) {
-            GameOverOverlay(onRestart = { viewModel.resetGame() })
+            GameOverOverlay(
+                onRestart = handleGameReset,
+                canRevive = state.canUndo && canRequestAds,
+                onRevive = onReviveRequest
+            )
         } else if (state.isUserReset) {
             NewGameOverlay(
-            onKeepPlaying = { viewModel.keepPlaying() },
-            onNewGame = { 
-                viewModel.resetGame()
-            }
-        )
+                onKeepPlaying = { viewModel.toggleUserReset(false) },
+                onNewGame = handleGameReset
+            )
         }
     }
 }
