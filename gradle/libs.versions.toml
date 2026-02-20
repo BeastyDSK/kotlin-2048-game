@@ -7,15 +7,16 @@ junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
 lifecycleViewmodelCompose = "2.10.0"
-activityCompose = "1.12.3"
-composeBom = "2026.01.01"
+activityCompose = "1.12.4"
+composeBom = "2026.02.00"
 serialization = "1.10.0"
 splashScreen = "1.2.0"
 google-services = "4.4.4"
 firebase-crashlytics-plugin = "3.0.6"
 firebase-bom = "34.9.0"
 ump = "4.0.0"
-playServicesAds = "24.9.0"
+playServicesAds = "25.0.0"
+playGames = "21.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -48,6 +49,8 @@ user-messaging-platform = { group = "com.google.android.ump", name = "user-messa
 
 # Google Play Services Ads
 play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
+
+play-services-games-v2 = { group = "com.google.android.gms", name = "play-services-games-v2", version.ref = "playGames" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
