@@ -51,14 +51,14 @@ fun AnimatedTile(tile: Tile, tileSize: Dp) {
     val targetX = tileSize * tile.x
     val targetY = tileSize * tile.y
 
-    val animX = remember { Animatable(targetX.value) }
-    val animY = remember { Animatable(targetY.value) }
+    val animX = remember(tileSize) { Animatable(targetX.value) }
+    val animY = remember(tileSize) { Animatable(targetY.value) }
     val scale = remember { Animatable(if (tile.isNew) 0f else 1f) }
 
     var displayedValue by remember { mutableIntStateOf(tile.value) }
 
     // Movement Animation
-    LaunchedEffect(tile.x, tile.y) {
+    LaunchedEffect(tile.x, tile.y, tileSize) {
         launch {
             animX.animateTo(targetX.value, tween(150, easing = FastOutSlowInEasing))
         }

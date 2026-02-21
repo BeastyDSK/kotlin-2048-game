@@ -39,6 +39,13 @@ enum class RewardType {
     REVIVE
 }
 
+sealed interface RewardedAdResult {
+    data object RewardGranted : RewardedAdResult
+    data object ClosedWithoutReward : RewardedAdResult
+    data object NotAvailable : RewardedAdResult
+    data object FailedToShow : RewardedAdResult
+}
+
 class AdManager(context: Context) {
     private val appContext = context.applicationContext
 
@@ -108,8 +115,7 @@ class AdManager(context: Context) {
     fun showRewardedAd(
         activity: Activity,
         rewardType: RewardType = RewardType.UNDO,
-        onRewardEarned: () -> Unit,
-        onDismissed: () -> Unit
+        onResult: (RewardedAdResult) -> Unit
     ) {
         val adToShow = when (rewardType) {
             RewardType.REVIVE -> rewardedReviveAd
@@ -117,13 +123,18 @@ class AdManager(context: Context) {
         }
 
         if (adToShow != null) {
+            var rewardEarned = false
             adToShow.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
                     when (rewardType) {
                         RewardType.REVIVE -> rewardedReviveAd = null
                         RewardType.UNDO -> rewardedUndoAd = null
                     }
-                    onDismissed()
+                    if (rewardEarned) {
+                        onResult(RewardedAdResult.RewardGranted)
+                    } else {
+                        onResult(RewardedAdResult.ClosedWithoutReward)
+                    }
                     loadRewardedAd(rewardType)
                 }
 
@@ -132,16 +143,16 @@ class AdManager(context: Context) {
                         RewardType.REVIVE -> rewardedReviveAd = null
                         RewardType.UNDO -> rewardedUndoAd = null
                     }
-                    onDismissed()
+                    onResult(RewardedAdResult.FailedToShow)
                     loadRewardedAd(rewardType)
                 }
             }
 
             adToShow.show(activity) {
-                onRewardEarned()
+                rewardEarned = true
             }
         } else {
-            onDismissed()
+            onResult(RewardedAdResult.NotAvailable)
             loadRewardedAd(rewardType)
         }
     }

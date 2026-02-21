@@ -43,6 +43,7 @@ import neuracircuit.dev.game2048.ui.components.NewGameOverlay
 import neuracircuit.dev.game2048.ads.AdaptiveBannerAd
 import neuracircuit.dev.game2048.ads.AdManager
 import neuracircuit.dev.game2048.ads.RewardType
+import neuracircuit.dev.game2048.ads.RewardedAdResult
 import neuracircuit.dev.game2048.ui.components.UndoAdOverlay
 
 @Composable
@@ -96,10 +97,22 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
         if (canRequestAds) {
             adManager.showRewardedAd(
                 activity = activity,
-                onRewardEarned = { 
-                    viewModel.undoLastMove()
+                onResult = { result ->
+                    when (result) {
+                        RewardedAdResult.RewardGranted -> {
+                            viewModel.undoLastMove()
+                        }
+                        RewardedAdResult.ClosedWithoutReward -> {
+                            Toast.makeText(context, context.getString(R.string.msg_ad_not_completed), Toast.LENGTH_SHORT).show()
+                        }
+                        RewardedAdResult.NotAvailable -> {
+                            Toast.makeText(context, context.getString(R.string.msg_ad_not_available), Toast.LENGTH_SHORT).show()
+                        }
+                        RewardedAdResult.FailedToShow -> {
+                            Toast.makeText(context, context.getString(R.string.msg_ad_failed_to_show), Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 },
-                onDismissed = { },
                 rewardType = RewardType.REVIVE
             )
         }
@@ -119,14 +132,25 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
     }
 
     val onUndoAdConfirm = {
-        showUndoAdOverlay = false
         adManager.showRewardedAd(
             activity = activity,
-            onRewardEarned = {
-                viewModel.grantMoreUndos(1)
-                // viewModel.undoLastMove()
+            onResult = { result ->
+                when (result) {
+                    RewardedAdResult.RewardGranted -> {
+                        showUndoAdOverlay = false
+                        viewModel.grantMoreUndos(1)
+                    }
+                    RewardedAdResult.ClosedWithoutReward -> {
+                        Toast.makeText(context, context.getString(R.string.msg_ad_not_completed), Toast.LENGTH_SHORT).show()
+                    }
+                    RewardedAdResult.NotAvailable -> {
+                        Toast.makeText(context, context.getString(R.string.msg_ad_not_available), Toast.LENGTH_SHORT).show()
+                    }
+                    RewardedAdResult.FailedToShow -> {
+                        Toast.makeText(context, context.getString(R.string.msg_ad_failed_to_show), Toast.LENGTH_SHORT).show()
+                    }
+                }
             },
-            onDismissed = { },
             rewardType = RewardType.UNDO
         )
     }
@@ -548,8 +572,7 @@ private fun LandscapeGameLayout(
                 state = state,
                 viewModel = viewModel,
                 modifier = Modifier
-                    .aspectRatio(1f)
-                    .fillMaxHeight(), // Ensure it uses full height
+                    .aspectRatio(1f),
                 handleGameReset = handleGameReset,
                 onReviveRequest = onReviveRequest,
                 canRequestAds = canRequestAds,
@@ -583,7 +606,7 @@ fun GameBoard(
     ) {
         // Calculate tile size based on the smaller dimension to prevent cutoff
         val boardSize = min(maxWidth, maxHeight)
-        val tileSize = (boardSize - 8.dp) / 4
+        val tileSize = boardSize / 4
 
         // Static Background
         for (x in 0..3) {
