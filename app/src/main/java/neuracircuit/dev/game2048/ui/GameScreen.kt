@@ -44,10 +44,15 @@ import neuracircuit.dev.game2048.ads.AdaptiveBannerAd
 import neuracircuit.dev.game2048.ads.AdManager
 import neuracircuit.dev.game2048.ads.RewardType
 import neuracircuit.dev.game2048.ads.RewardedAdResult
+import neuracircuit.dev.game2048.ui.components.CloudSyncOverlay
 import neuracircuit.dev.game2048.ui.components.UndoAdOverlay
 
 @Composable
-fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = false) {
+fun GameScreen(
+    viewModel: GameViewModel = viewModel(),
+    canRequestAds: Boolean = false,
+    canUseCloudSave: Boolean = false
+) {
     // Depending on if you renamed state to 'uiState' or kept 'gameState', update this line.
     // I am assuming 'uiState' based on the settings features, but if you kept 'gameState', change it back.
     val state by viewModel.uiState.collectAsState()
@@ -74,6 +79,15 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
 
     // --- AD MANAGER INITIALIZATION & LOADING ---
     val adManager = remember { AdManager(context) }
+
+    LaunchedEffect(activity, canUseCloudSave) {
+        viewModel.attachCloudManager(activity)
+        if (canUseCloudSave) {
+            viewModel.refreshCloudAuth {
+                viewModel.syncWithCloud()
+            }
+        }
+    }
 
     LaunchedEffect(canRequestAds) {
         if (canRequestAds) {
@@ -640,6 +654,13 @@ fun GameBoard(
             NewGameOverlay(
                 onKeepPlaying = { viewModel.toggleUserReset(false) },
                 onNewGame = handleGameReset
+            )
+        } else if (state.showCloudSyncOverlay) {
+            // NEW: The Cloud Sync Conflict Overlay
+            CloudSyncOverlay(
+                cloudScore = state.pendingCloudSave?.score ?: 0,
+                onReject = { viewModel.rejectCloudSave() },
+                onAccept = { viewModel.acceptCloudSave() }
             )
         }
 

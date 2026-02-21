@@ -28,7 +28,7 @@ android {
         applicationId = "neuracircuit.dev.game2048"
         minSdk = 23
         targetSdk = 36
-        versionCode = 1
+        versionCode = 3
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -40,8 +40,9 @@ android {
         val gameoverResetInterstitialId = localProperties.getProperty("GAMEOVER_RESET_INTERSTITIAL_AD_ID") ?: "ca-app-pub-3940256099942544/1033173712"
         val undoLastMoveRewardedAdId = localProperties.getProperty("UNDO_LAST_MOVE_REWARDED_AD_ID") ?: "ca-app-pub-3940256099942544/5224354917"
         val undoRewardedAdId = localProperties.getProperty("UNDO_REWARDED_AD_ID") ?: "ca-app-pub-3940256099942544/5224354917"
-        // val unityGameId = localProperties.getProperty("UNITY_GAME_ID") ?: "6028752"
-        val playgameAppId = localProperties.getProperty("PLAYGAME_APP_ID") ?: "";
+        val playgameAppId = localProperties.getProperty("PLAY_GAMES_GAME_ID")
+            ?: localProperties.getProperty("PLAYGAME_APP_ID")
+            ?: ""
 
         buildConfigField("String", "ADMOB_APP_ID", "\"$admobAppId\"")
         buildConfigField("String", "APP_BOTTOM_BANNER_AD_ID", "\"$appBottomBannerId\"")

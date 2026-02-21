@@ -25,7 +25,13 @@
     <string name="restart">Restart?</string>
     <string name="msg_confirm_restart">Are you sure you want to start over? Your current progress will be lost.</string>
     <string name="btn_cancel">Cancel</string>
-    
+
+    <!-- CloudSyncOverlay -->
+    <string name="msg_cloud_save_found">Cloud Save Found?</string>
+    <string name="msg_cloud_save_details">We found a better save synced to your Google account with a score of $cloudScore. Do you want to load it? Your current progress will be lost.</string>
+    <string name="btn_keep_local">Keep Local</string>
+    <string name="btn_load_cloud">Load Cloud Save</string>
+
     <!-- Settings -->
     <string name="title_settings">Settings</string>
     <string name="label_volume">Volume</string>

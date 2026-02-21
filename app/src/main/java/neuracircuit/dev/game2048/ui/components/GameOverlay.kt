@@ -325,3 +325,85 @@ fun UndoAdOverlay(
         }
     }
 }
+
+@Composable
+fun CloudSyncOverlay(
+    cloudScore: Int,
+    onReject: () -> Unit,
+    onAccept: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f)) // Dim background
+            .padding(24.dp), // Safe area
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(OverlayCornerRadius),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.msg_cloud_save_found),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GameColors.TextDark,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Text(
+                    text = stringResource(R.string.msg_cloud_save_details, cloudScore),
+                    fontSize = 16.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Reject Button
+                    TextButton(
+                        onClick = onReject,
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = ButtonShape
+                    ) {
+                        Text(
+                            text = stringResource(R.string.btn_keep_local), 
+                            color = Color.Gray, 
+                            fontSize = 16.sp, 
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    
+                    // Accept Button
+                    Button(
+                        onClick = onAccept,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = GameColors.TextDark
+                        ),
+                        shape = ButtonShape,
+                        modifier = Modifier.weight(1f).height(48.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.btn_load_cloud), 
+                            color = Color.White, 
+                            fontSize = 16.sp, 
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

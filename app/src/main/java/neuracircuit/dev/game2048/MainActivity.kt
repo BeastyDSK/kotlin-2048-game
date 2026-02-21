@@ -23,16 +23,46 @@ import neuracircuit.dev.game2048.data.ConsentManager
 import com.google.android.gms.ads.MobileAds
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.saveable.rememberSaveable
+import com.google.android.gms.games.PlayGames
+import com.google.android.gms.games.PlayGamesSdk
 
 class MainActivity : ComponentActivity() {
     private lateinit var analyticsManager: AnalyticsManager
     private lateinit var consentManager: ConsentManager
     private val canRequestAdState: MutableState<Boolean> = mutableStateOf(false);
+    private val playGamesSignedInState: MutableState<Boolean> = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
+
+        PlayGamesSdk.initialize(this)
+
+        val gamesSignInClient = PlayGames.getGamesSignInClient(this)
+        gamesSignInClient.isAuthenticated()
+            .addOnSuccessListener { result ->
+                if (result.isAuthenticated) {
+                    playGamesSignedInState.value = true
+                } else {
+                    gamesSignInClient.signIn()
+                        .addOnSuccessListener { signInResult ->
+                            playGamesSignedInState.value = signInResult.isAuthenticated
+                        }
+                        .addOnFailureListener {
+                            playGamesSignedInState.value = false
+                        }
+                }
+            }
+            .addOnFailureListener {
+                gamesSignInClient.signIn()
+                    .addOnSuccessListener { signInResult ->
+                        playGamesSignedInState.value = signInResult.isAuthenticated
+                    }
+                    .addOnFailureListener {
+                        playGamesSignedInState.value = false
+                    }
+            }
 
         // 1. Enable Edge-to-Edge
         enableEdgeToEdge()
@@ -65,6 +95,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val canRequestAds by canRequestAdState
+            val playGamesSignedIn by playGamesSignedInState
 
             MaterialTheme {
                 Surface(
@@ -80,7 +111,10 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     } else {
-                        GameScreen( canRequestAds = canRequestAds)
+                        GameScreen(
+                            canRequestAds = canRequestAds,
+                            canUseCloudSave = playGamesSignedIn
+                        )
                     }
                 }
             }
