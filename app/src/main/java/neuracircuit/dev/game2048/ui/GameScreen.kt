@@ -80,11 +80,10 @@ fun GameScreen(
     // --- AD MANAGER INITIALIZATION & LOADING ---
     val adManager = remember { AdManager(context) }
 
-    LaunchedEffect(activity, canUseCloudSave) {
-        viewModel.attachCloudManager(activity)
+    LaunchedEffect(canUseCloudSave) {
         if (canUseCloudSave) {
-            viewModel.refreshCloudAuth {
-                viewModel.syncWithCloud()
+            viewModel.refreshCloudAuth(activity) {
+                viewModel.syncWithCloud(activity)
             }
         }
     }
@@ -99,8 +98,7 @@ fun GameScreen(
 
     // --- DRY RESET LOGIC ---
     val handleGameReset = {
-        viewModel.resetGame()
-
+        viewModel.resetGame(activity)
         if (canRequestAds) {
             adManager.showInterstitialAd(activity, onDismissed = {})
         }
@@ -169,7 +167,6 @@ fun GameScreen(
         )
     }
 
-    // Listen for Merge Events from ViewModel
     LaunchedEffect(viewModel) {
         viewModel.gameEvents.collect { event ->
             if (event is GameEvent.Merge) {
@@ -187,7 +184,7 @@ fun GameScreen(
     val minSwipeDist = 50f
 
     // Helper to determine if input should be blocked
-    val isOverlayVisible = (state.hasWon && !state.keepPlaying) || state.isGameOver || state.isUserReset || showUndoAdOverlay
+    val isOverlayVisible = (state.hasWon && !state.keepPlaying) || state.isGameOver || state.isUserReset || showUndoAdOverlay || state.showCloudSyncOverlay
 
     // Shared Swipe Modifier to prevent code duplication
     val swipeModifier = Modifier
@@ -200,11 +197,11 @@ fun GameScreen(
                         val absY = abs(offsetY)
                         if (java.lang.Float.max(absX, absY) > minSwipeDist) {
                             if (absX > absY) {
-                                if (offsetX > 0) viewModel.handleSwipe(Direction.RIGHT)
-                                else viewModel.handleSwipe(Direction.LEFT)
+                                if (offsetX > 0) viewModel.handleSwipe(activity, Direction.RIGHT)
+                                else viewModel.handleSwipe(activity, Direction.LEFT)
                             } else {
-                                if (offsetY > 0) viewModel.handleSwipe(Direction.DOWN)
-                                else viewModel.handleSwipe(Direction.UP)
+                                if (offsetY > 0) viewModel.handleSwipe(activity, Direction.DOWN)
+                                else viewModel.handleSwipe(activity, Direction.UP)
                             }
                         }
                         offsetX = 0f
@@ -586,7 +583,8 @@ private fun LandscapeGameLayout(
                 state = state,
                 viewModel = viewModel,
                 modifier = Modifier
-                    .aspectRatio(1f),
+                    .aspectRatio(1f)
+                    .fillMaxHeight(), 
                 handleGameReset = handleGameReset,
                 onReviveRequest = onReviveRequest,
                 canRequestAds = canRequestAds,

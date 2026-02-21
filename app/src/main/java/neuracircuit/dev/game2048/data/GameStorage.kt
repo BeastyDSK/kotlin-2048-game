@@ -12,7 +12,13 @@ class GameStorage(context: Context) {
     // Configured Json to be lenient
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun saveData(grid: List<Tile>, score: Int, freeUndosLeft: Int) {
+    fun saveData(
+        grid: List<Tile>,
+        score: Int,
+        freeUndosLeft: Int,
+        isCloudSaveFlag: Boolean = false,
+        cloudHighScore: Int = 0
+    ) {
         prefs.edit {
 
             // 1. Save Score
@@ -20,9 +26,12 @@ class GameStorage(context: Context) {
 
             // 2. Update High Score if needed
             val currentHigh = prefs.getInt("high_score", 0)
-            if (score > currentHigh) {
-                putInt("high_score", score)
+            val candidateHigh = if (isCloudSaveFlag) {
+                maxOf(currentHigh, cloudHighScore)
+            } else {
+                maxOf(currentHigh, score)
             }
+            putInt("high_score", candidateHigh)
 
             // 3. Save Free Undos Left
             putInt("free_undos_left", freeUndosLeft)

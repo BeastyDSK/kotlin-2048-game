@@ -49,8 +49,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     
     private val storage = GameStorage(application)
     private val soundManager = SoundManager(application)
-    private val analytics = AnalyticsManager(application) // Initialize Analytics
-    private var cloudSaveManager: CloudSaveManager? = null
+    private val analytics = AnalyticsManager(application)
+    
+    // Stateless manager to avoid memory leaks
+    private val cloudSaveManager = CloudSaveManager()
     private var cloudAuthenticated: Boolean = false
 
     private val _uiState = MutableStateFlow(GameUiState())
@@ -65,6 +67,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     // Helper to track session-based achievements so we don't log "512 reached" multiple times per game
     private val reachedTilesSession = mutableSetOf<Int>()
+
+    private var isProcessingMove = false
+    private var debouncedSaveJob: kotlinx.coroutines.Job? = null // NEW: Tracks the debounce timer
 
     init {
         // Attempt to load previous game
@@ -114,43 +119,43 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         hasInteractedThisSession = true
     }
 
-    fun attachCloudManager(activity: Activity) {
-        if (cloudSaveManager != null) return
-        cloudSaveManager = CloudSaveManager(activity)
-    }
-
-    fun refreshCloudAuth(onDone: (() -> Unit)? = null) {
-        val manager = cloudSaveManager
-        if (manager == null) {
-            cloudAuthenticated = false
-            onDone?.invoke()
-            return
-        }
-        manager.isAuthenticated { isAuth ->
+    fun refreshCloudAuth(activity: Activity, onDone: (() -> Unit)? = null) {
+        cloudSaveManager.isAuthenticated(activity) { isAuth ->
             cloudAuthenticated = isAuth
             onDone?.invoke()
         }
     }
 
-    fun syncWithCloud() {
-        val manager = cloudSaveManager ?: return
+    fun syncWithCloud(activity: Activity) {
         if (!cloudAuthenticated) return
 
-        manager.loadGameFromCloud { cloudData ->
-            if (cloudData != null && cloudData.score > _uiState.value.score) {
+        cloudSaveManager.loadGameFromCloud(activity) { cloudData ->
+            if (cloudData != null) {
+                val localState = _uiState.value
                 
-                if (!hasInteractedThisSession) {
-                    // SAFE: The user hasn't touched the board yet. Load it silently.
-                    applyCloudSave(cloudData)
-                } else {
-                    // CONFLICT: The user is playing. Show the overlay instead!
-                    _uiState.update {
-                        it.copy(
-                            showCloudSyncOverlay = true,
-                            pendingCloudSave = cloudData,
-                            highScore = maxOf(it.highScore, cloudData.highScore) // Update high score safely in background
-                        )
+                val mergedHighScore = maxOf(cloudData.highScore, localState.highScore)
+                
+                var highScoreUpdatedLocally = false
+                if (mergedHighScore > localState.highScore) {
+                    _uiState.update { it.copy(highScore = mergedHighScore) }
+                    highScoreUpdatedLocally = true
+                }
+
+                if (cloudData.score > localState.score) {
+                    val mergedCloudData = cloudData.copy(highScore = mergedHighScore)
+                    
+                    if (!hasInteractedThisSession) {
+                        applyCloudSave(mergedCloudData)
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                showCloudSyncOverlay = true,
+                                pendingCloudSave = mergedCloudData
+                            )
+                        }
                     }
+                } else if (highScoreUpdatedLocally) {
+                    saveToCloud(activity)
                 }
             }
         }
@@ -158,6 +163,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun applyCloudSave(cloudData: CloudSaveData) {
         val has2048 = cloudData.grid.any { it.value >= 2048 }
+        
+        // FIX 1 (Zombie Board): Force a mathematical check on the incoming grid immediately.
+        val isOver = calculateGameOver(cloudData.grid) 
+
+        // FIX 2 (Phantom Undo): Safely clear and rebuild the volatile history stack from the cloud.
+        history.clear()
+        history.addAll(cloudData.history)
+
         _uiState.update {
             it.copy(
                 grid = cloudData.grid,
@@ -166,11 +179,19 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 freeUndosLeft = cloudData.freeUndosLeft,
                 hasWon = has2048,
                 keepPlaying = has2048,
-                showCloudSyncOverlay = false, // Dismiss overlay
-                pendingCloudSave = null       // Clear pending data
+                isGameOver = isOver,                  // Accurately reflects the new board state
+                canUndo = history.isNotEmpty(),       // Instantly unlocks the Undo/Revive button if history exists
+                showCloudSyncOverlay = false, 
+                pendingCloudSave = null       
             )
         }
-        storage.saveData(cloudData.grid, cloudData.score, cloudData.freeUndosLeft)
+        storage.saveData(
+            grid = cloudData.grid,
+            score = cloudData.score,
+            freeUndosLeft = cloudData.freeUndosLeft,
+            isCloudSaveFlag = true,
+            cloudHighScore = cloudData.highScore
+        )
     }
 
     fun acceptCloudSave() {
@@ -183,13 +204,27 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun saveToCloud() {
-        val manager = cloudSaveManager ?: return
+    private fun triggerDebouncedCloudSave(activity: Activity) {
+        // 1. Cancel the previous timer if they swiped again before 5 seconds was up
+        debouncedSaveJob?.cancel() 
+        
+        // 2. Start a new timer
+        debouncedSaveJob = viewModelScope.launch {
+            delay(5000) // Wait for 5 seconds of inactivity
+            
+            // 3. The 5 seconds have passed! Ensure the Activity is still alive before saving.
+            if (!activity.isFinishing && !activity.isDestroyed) {
+                saveToCloud(activity)
+            }
+        }
+    }
+
+    private fun saveToCloud(activity: Activity) {
         if (!cloudAuthenticated) return
 
         val state = _uiState.value
-        val data = CloudSaveData(state.grid, state.score, state.highScore, state.freeUndosLeft)
-        manager.saveGameToCloud(data)
+        val data = CloudSaveData(state.grid, state.score, state.highScore, state.freeUndosLeft, history.toList())
+        cloudSaveManager.saveGameToCloud(activity, data)
     }
 
     // --- ACTIONS ---
@@ -253,7 +288,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         soundManager.playTest(_uiState.value.volume)
     }
 
-    fun resetGame() {
+    fun resetGame(activity: Activity) {
         val currentHigh = storage.getHighScore()
         history.clear()
         reachedTilesSession.clear() // Reset session tracker
@@ -278,10 +313,10 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         spawnTile(2)
         storage.clearActiveGame()
 
-        saveToCloud()
+        saveToCloud(activity)
     }
 
-    fun handleSwipe(direction: Direction) {
+    fun handleSwipe(activity: Activity, direction: Direction) {
         if (_uiState.value.isGameOver) return
 
         markInteraction()
@@ -340,8 +375,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 delay(50)
                 spawnTile(1)
                 storage.saveData(_uiState.value.grid, _uiState.value.score, _uiState.value.freeUndosLeft)
-                saveToCloud()
-                checkGameOver()
+                triggerDebouncedCloudSave(activity)
+                checkGameOver(activity)
             }
         }
     }
@@ -388,7 +423,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         return true
     }
 
-    private fun checkGameOver() {
+    private fun checkGameOver(activity: Activity) {
         if (calculateGameOver(_uiState.value.grid)) {
             _uiState.update { it.copy(isGameOver = true) }
             
@@ -396,7 +431,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val maxTile = _uiState.value.grid.maxOfOrNull { it.value } ?: 0
             analytics.logGameOver(_uiState.value.score, maxTile)
 
-            saveToCloud()
+            saveToCloud(activity)
         }
     }
 

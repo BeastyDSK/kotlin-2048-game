@@ -5,9 +5,9 @@ import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.SnapshotsClient
 import com.google.android.gms.games.snapshot.SnapshotMetadataChange
 
-class CloudSaveManager(private val activity: Activity) {
+class CloudSaveManager {
 
-    fun isAuthenticated(onResult: (Boolean) -> Unit) {
+    fun isAuthenticated(activity: Activity, onResult: (Boolean) -> Unit) {
         PlayGames.getGamesSignInClient(activity)
             .isAuthenticated()
             .addOnSuccessListener { authResult ->
@@ -18,7 +18,7 @@ class CloudSaveManager(private val activity: Activity) {
             }
     }
 
-    fun saveGameToCloud(data: CloudSaveData) {
+    fun saveGameToCloud(activity: Activity, data: CloudSaveData) {
         val snapshotsClient = PlayGames.getSnapshotsClient(activity)
         
         snapshotsClient.open("autosave", true, SnapshotsClient.RESOLUTION_POLICY_HIGHEST_PROGRESS)
@@ -41,7 +41,7 @@ class CloudSaveManager(private val activity: Activity) {
             }
     }
 
-    fun loadGameFromCloud(onLoaded: (CloudSaveData?) -> Unit) {
+    fun loadGameFromCloud(activity: Activity, onLoaded: (CloudSaveData?) -> Unit) {
         val snapshotsClient = PlayGames.getSnapshotsClient(activity)
 
         snapshotsClient.open("autosave", false, SnapshotsClient.RESOLUTION_POLICY_HIGHEST_PROGRESS)
