@@ -140,6 +140,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     fun grantMoreUndos(amount: Int = 3) {
         _uiState.update { it.copy(freeUndosLeft = it.freeUndosLeft + amount) }
+        storage.saveData(_uiState.value.grid, _uiState.value.score, _uiState.value.freeUndosLeft)
     }
 
     // --- Settings Actions ---

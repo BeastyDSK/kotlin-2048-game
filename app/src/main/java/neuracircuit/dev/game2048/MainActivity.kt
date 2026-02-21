@@ -11,7 +11,6 @@ import neuracircuit.dev.game2048.ui.GameScreen
 import neuracircuit.dev.game2048.ui.theme.GameColors
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import neuracircuit.dev.game2048.ui.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -23,6 +22,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import neuracircuit.dev.game2048.data.ConsentManager
 import com.google.android.gms.ads.MobileAds
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.saveable.rememberSaveable
 
 class MainActivity : ComponentActivity() {
     private lateinit var analyticsManager: AnalyticsManager
@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = GameColors.Background
                 ) {
-                    var showSplash by remember { mutableStateOf(true) }
+                    var showSplash by rememberSaveable { mutableStateOf(true) }
 
                     if (showSplash) {
                         SplashScreen(

@@ -173,7 +173,7 @@ fun GameScreen(viewModel: GameViewModel = viewModel(), canRequestAds: Boolean = 
     val minSwipeDist = 50f
 
     // Helper to determine if input should be blocked
-    val isOverlayVisible = (state.hasWon && !state.keepPlaying) || state.isGameOver || state.isUserReset
+    val isOverlayVisible = (state.hasWon && !state.keepPlaying) || state.isGameOver || state.isUserReset || showUndoAdOverlay
 
     // Shared Swipe Modifier to prevent code duplication
     val swipeModifier = Modifier
