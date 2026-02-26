@@ -44,6 +44,7 @@ data class GameUiState(
     val canUndo: Boolean = false,
     val isUserReset: Boolean = false,
     val freeUndosLeft: Int = 3,
+    val showTutorial: Boolean = false,
     val showCloudSyncOverlay: Boolean = false,
     val pendingCloudSave: CloudSaveData? = null
 )
@@ -76,6 +77,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private var debouncedSaveJob: kotlinx.coroutines.Job? = null // NEW: Tracks the debounce timer
 
     init {
+        val showTutorial = !storage.hasSeenTutorial()
         // Attempt to load previous game
         val savedGame = storage.loadData()
         val currentGrid = savedGame?.grid ?: emptyList()
@@ -90,7 +92,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     highScore = currentHigh,
                     volume = settings.volume,
                     isHapticEnabled = settings.hapticsEnabled,
-                    freeUndosLeft = 3
+                    freeUndosLeft = 3,
+                    showTutorial = showTutorial
                 )
                 spawnTile(2)
                 storage.clearActiveGame()
@@ -104,7 +107,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     isHapticEnabled = settings.hapticsEnabled,
                     hasWon = has2048,
                     keepPlaying = has2048,
-                    freeUndosLeft = currentFreeUndos
+                    freeUndosLeft = currentFreeUndos,
+                    showTutorial = showTutorial
                 )
             }
         } else {
@@ -112,7 +116,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 highScore = currentHigh,
                 volume = settings.volume,
                 isHapticEnabled = settings.hapticsEnabled,
-                freeUndosLeft = 3
+                freeUndosLeft = 3,
+                showTutorial = showTutorial
             )
             spawnTile(2)
         }
@@ -236,6 +241,15 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun keepPlaying() {
         _uiState.update { it.copy(keepPlaying = true, isUserReset = false) }
     }
+
+    fun dismissTutorial() {
+        _uiState.update { it.copy(showTutorial = false) }
+        storage.setTutorialSeen()
+    }
+
+    fun openTutorial() {
+        _uiState.update { it.copy(showTutorial = true) }
+    }
     
     private fun saveState() {
         val currentGrid = _uiState.value.grid
@@ -311,7 +325,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 grid = emptyList(),
                 score = 0,
                 isUserReset = false,
-                freeUndosLeft = 3
+                freeUndosLeft = 3,
+                showTutorial = it.showTutorial
             )
         }
         spawnTile(2)

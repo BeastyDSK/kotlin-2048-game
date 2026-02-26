@@ -484,3 +484,109 @@ fun CloudSyncOverlay(
         }
     }
 }
+
+@Composable
+fun TutorialOverlay(
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(OverlayCornerRadius),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.Start,
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.title_how_to_play),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GameColors.TextDark
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_tutorial),
+                        contentDescription = null,
+                        tint = GameColors.TextDark
+                    )
+                    Text(
+                        text = stringResource(R.string.tutorial_rule_1),
+                        fontSize = 16.sp,
+                        color = Color.Gray,
+                        lineHeight = 22.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_tutorial),
+                        contentDescription = null,
+                        tint = GameColors.TextDark
+                    )
+                    Text(
+                        text = stringResource(R.string.tutorial_rule_2),
+                        fontSize = 16.sp,
+                        color = Color.Gray,
+                        lineHeight = 22.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_tutorial),
+                        contentDescription = null,
+                        tint = GameColors.TextDark
+                    )
+                    Text(
+                        text = stringResource(R.string.tutorial_rule_3),
+                        fontSize = 16.sp,
+                        color = Color.Gray,
+                        lineHeight = 22.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = onDismiss,
+                    colors = ButtonDefaults.buttonColors(containerColor = GameColors.TextDark),
+                    shape = ButtonShape,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .height(48.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.btn_got_it),
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}

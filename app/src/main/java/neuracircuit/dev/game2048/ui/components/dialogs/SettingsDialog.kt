@@ -30,6 +30,7 @@ fun SettingsDialog(
     onVolumeChange: (Float) -> Unit,
     onVolumeChangeFinished: () -> Unit,
     onHapticsChange: (Boolean) -> Unit,
+    onHowToPlay: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val uriHandler = LocalUriHandler.current
@@ -109,6 +110,26 @@ fun SettingsDialog(
                             uncheckedThumbColor = GameColors.TextDark,
                             uncheckedTrackColor = GameColors.GridBackground
                         )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = onHowToPlay,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(id = R.drawable.ic_tutorial),
+                        contentDescription = null,
+                        tint = GameColors.TextDark
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.title_how_to_play),
+                        color = GameColors.TextDark,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
 

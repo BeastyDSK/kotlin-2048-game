@@ -49,6 +49,7 @@ import neuracircuit.dev.game2048.ui.components.UndoAdOverlay
 import neuracircuit.dev.game2048.data.PlayGamesManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import neuracircuit.dev.game2048.ui.components.TutorialOverlay
 
 @Composable
 fun GameScreen(
@@ -211,7 +212,7 @@ fun GameScreen(
     val minSwipeDist = 50f
 
     // Helper to determine if input should be blocked
-    val isOverlayVisible = (state.hasWon && !state.keepPlaying) || state.isGameOver || state.isUserReset || showUndoAdOverlay || state.showCloudSyncOverlay
+    val isOverlayVisible = (state.hasWon && !state.keepPlaying) || state.isGameOver || state.isUserReset || showUndoAdOverlay || state.showCloudSyncOverlay || state.showTutorial
 
     // Shared Swipe Modifier to prevent code duplication
     val swipeModifier = Modifier
@@ -307,7 +308,17 @@ fun GameScreen(
             onVolumeChange = { viewModel.setVolume(it) },
             onVolumeChangeFinished = { viewModel.playTestSound() },
             onHapticsChange = { viewModel.toggleHaptics(it) },
+            onHowToPlay = {
+                showSettings = false
+                viewModel.openTutorial()
+            },
             onDismiss = { showSettings = false }
+        )
+    }
+
+    if (state.showTutorial) {
+        TutorialOverlay(
+            onDismiss = { viewModel.dismissTutorial() }
         )
     }
 

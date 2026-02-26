@@ -48,6 +48,14 @@
     <string name="desc_settings">Open Settings</string>
     <string name="desc_leaderboard">Open Leaderboard</string>
     <string name="desc_achievements">Open Achievements</string>
+    <string name="desc_tutorial">How to Play</string>
+
+    <!-- TutorialOverlay -->
+    <string name="title_how_to_play">How to Play</string>
+    <string name="tutorial_rule_1">Swipe (Up, Down, Left, Right) to move all tiles.</string>
+    <string name="tutorial_rule_2">Tiles with the same number merge into one when they touch.</string>
+    <string name="tutorial_rule_3">Add them up to reach 2048 to win!</string>
+    <string name="btn_got_it">Got it!</string>
     
     <!-- back to exit -->
     <string name="msg_double_back_exit">Press back again to exit</string>

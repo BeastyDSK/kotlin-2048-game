@@ -88,6 +88,16 @@ class GameStorage(context: Context) {
             hapticsEnabled = prefs.getBoolean("haptics", true) // Default true
         )
     }
+
+    fun hasSeenTutorial(): Boolean {
+        return prefs.getBoolean("has_seen_tutorial", false)
+    }
+
+    fun setTutorialSeen() {
+        prefs.edit {
+            putBoolean("has_seen_tutorial", true)
+        }
+    }
 }
 
 // Helper DTO for loading
