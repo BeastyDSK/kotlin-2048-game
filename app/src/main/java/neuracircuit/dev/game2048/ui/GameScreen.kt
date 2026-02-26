@@ -46,6 +46,9 @@ import neuracircuit.dev.game2048.ads.RewardType
 import neuracircuit.dev.game2048.ads.RewardedAdResult
 import neuracircuit.dev.game2048.ui.components.CloudSyncOverlay
 import neuracircuit.dev.game2048.ui.components.UndoAdOverlay
+import neuracircuit.dev.game2048.data.PlayGamesManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 @Composable
 fun GameScreen(
@@ -69,6 +72,10 @@ fun GameScreen(
     // double back to exit
     val context = LocalContext.current
     val activity = LocalActivity.current ?: (context as? Activity)
+    val playGamesManager = remember { PlayGamesManager(context.applicationContext) }
+    val playGamesLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { }
     
     // Load resource for toast
     val doubleBackMsg = stringResource(R.string.msg_double_back_exit)
@@ -171,6 +178,22 @@ fun GameScreen(
         }
     }
 
+    val onLeaderboardClick = {
+        if (activity != null && canUseCloudSave) {
+            playGamesManager.showLeaderboard(activity) { intent ->
+                playGamesLauncher.launch(intent)
+            }
+        }
+    }
+
+    val onAchievementsClick = {
+        if (activity != null && canUseCloudSave) {
+            playGamesManager.showAchievements(activity) { intent ->
+                playGamesLauncher.launch(intent)
+            }
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.gameEvents.collect { event ->
             if (event is GameEvent.Merge) {
@@ -250,6 +273,9 @@ fun GameScreen(
                 showUndoAdOverlay = showUndoAdOverlay,
                 onUndoAdDismiss = onUndoAdDismiss,
                 onUndoAdConfirm = onUndoAdConfirm,
+                canUseCloudSave = canUseCloudSave,
+                onLeaderboardClick = onLeaderboardClick,
+                onAchievementsClick = onAchievementsClick,
             )
         } else {
             PortraitGameLayout(
@@ -266,6 +292,9 @@ fun GameScreen(
                 showUndoAdOverlay = showUndoAdOverlay,
                 onUndoAdDismiss = onUndoAdDismiss,
                 onUndoAdConfirm = onUndoAdConfirm,
+                canUseCloudSave = canUseCloudSave,
+                onLeaderboardClick = onLeaderboardClick,
+                onAchievementsClick = onAchievementsClick,
             )
         }
     }
@@ -312,7 +341,10 @@ private fun PortraitGameLayout(
     onReviveRequest: () -> Unit,
     showUndoAdOverlay: Boolean,
     onUndoAdDismiss: () -> Unit,
-    onUndoAdConfirm: () -> Unit
+    onUndoAdConfirm: () -> Unit,
+    canUseCloudSave: Boolean,
+    onLeaderboardClick: () -> Unit,
+    onAchievementsClick: () -> Unit
     ) {
     Column(
         modifier = modifier,
@@ -416,18 +448,46 @@ private fun PortraitGameLayout(
                 )
             }
 
-            // Settings Button
-            ControlIcon(
-                icon = { 
-                   Icon(
-                       painter = painterResource(R.drawable.ic_settings),
-                       contentDescription = stringResource(R.string.desc_settings),
-                       tint = GameColors.TextDark
-                   )
-                },
-                enabled = true,
-                onClick = onSettingsClick
-            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ControlIcon(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_leaderboard),
+                            contentDescription = stringResource(R.string.desc_leaderboard),
+                            tint = if (canUseCloudSave) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
+                        )
+                    },
+                    enabled = canUseCloudSave,
+                    onClick = onLeaderboardClick
+                )
+
+                ControlIcon(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_achievement),
+                            contentDescription = stringResource(R.string.desc_achievements),
+                            tint = if (canUseCloudSave) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
+                        )
+                    },
+                    enabled = canUseCloudSave,
+                    onClick = onAchievementsClick
+                )
+
+                ControlIcon(
+                    icon = { 
+                       Icon(
+                           painter = painterResource(R.drawable.ic_settings),
+                           contentDescription = stringResource(R.string.desc_settings),
+                           tint = GameColors.TextDark
+                       )
+                    },
+                    enabled = true,
+                    onClick = onSettingsClick
+                )
+            }
         }
         
         Spacer(modifier = Modifier.height(32.dp))
@@ -461,7 +521,10 @@ private fun LandscapeGameLayout(
     onReviveRequest: () -> Unit,
     showUndoAdOverlay: Boolean,
     onUndoAdDismiss: () -> Unit,
-    onUndoAdConfirm: () -> Unit
+    onUndoAdConfirm: () -> Unit,
+    canUseCloudSave: Boolean,
+    onLeaderboardClick: () -> Unit,
+    onAchievementsClick: () -> Unit
 ) {
     Row(
         modifier = modifier,
@@ -557,6 +620,34 @@ private fun LandscapeGameLayout(
                     },
                     enabled = !isOverlayVisible,
                     onClick = onResetClick
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                ControlIcon(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_leaderboard),
+                            contentDescription = stringResource(R.string.desc_leaderboard),
+                            tint = if (canUseCloudSave) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
+                        )
+                    },
+                    enabled = canUseCloudSave,
+                    onClick = onLeaderboardClick
+                )
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                ControlIcon(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_achievement),
+                            contentDescription = stringResource(R.string.desc_achievements),
+                            tint = if (canUseCloudSave) GameColors.TextDark else Color.Gray.copy(alpha = 0.5f)
+                        )
+                    },
+                    enabled = canUseCloudSave,
+                    onClick = onAchievementsClick
                 )
 
                 Spacer(modifier = Modifier.width(16.dp))

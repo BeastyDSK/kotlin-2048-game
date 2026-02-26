@@ -20,6 +20,9 @@ import java.util.ArrayDeque
 import neuracircuit.dev.game2048.data.CloudSaveManager
 import neuracircuit.dev.game2048.data.CloudSaveData
 import android.app.Activity
+import neuracircuit.dev.game2048.helpers.AppReviewManager
+import neuracircuit.dev.game2048.data.PlayGamesManager
+import neuracircuit.dev.game2048.R
 
 // --- DATA MODEL FOR UNDO ---
 data class Snapshot(val tiles: List<Tile>, val score: Int)
@@ -53,6 +56,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     
     // Stateless manager to avoid memory leaks
     private val cloudSaveManager = CloudSaveManager(analytics)
+    private val playGamesManager = PlayGamesManager(application)
     private var cloudAuthenticated: Boolean = false
 
     private val _uiState = MutableStateFlow(GameUiState())
@@ -348,9 +352,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 
                 // Check if any tile is >= 512 and log it (if not already logged this session)
                 result.finalGrid.forEach { tile ->
-                    if (tile.value >= 512 && !reachedTilesSession.contains(tile.value)) {
+                    if (tile.value >= 512 && reachedTilesSession.add(tile.value)) {
                         analytics.logTileReached(tile.value)
-                        reachedTilesSession.add(tile.value)
+                        when (tile.value) {
+                            512 -> playGamesManager.unlockAchievement(activity, R.string.achievement_512)
+                            1024 -> playGamesManager.unlockAchievement(activity, R.string.achievement_1024)
+                            2048 -> playGamesManager.unlockAchievement(activity, R.string.achievement_2048)
+                        }
                     }
                     // Victory check
                     if (!_uiState.value.hasWon && !_uiState.value.keepPlaying && tile.value == 2048) {
@@ -368,6 +376,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 
                 if (victoryTriggered) {
+                    AppReviewManager.onGameFinished(activity)
                      if (_uiState.value.isHapticEnabled) _gameEvents.emit(GameEvent.Victory)
                 }
 
@@ -425,11 +434,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun checkGameOver(activity: Activity) {
         if (calculateGameOver(_uiState.value.grid)) {
+            AppReviewManager.onGameFinished(activity)
+
             _uiState.update { it.copy(isGameOver = true) }
             
             // Log Game Over
             val maxTile = _uiState.value.grid.maxOfOrNull { it.value } ?: 0
             analytics.logGameOver(_uiState.value.score, maxTile)
+            playGamesManager.submitScore(activity, _uiState.value.score)
 
             saveToCloud(activity)
         }

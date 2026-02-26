@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">2048</string>
     <string name="PLAYGAMES_GAME_ID">377080797621</string>
+    <string name="leaderboard_high_scores">CgkItbOR3vwKEAIQAg</string>
+    <string name="achievement_512">CgkItbOR3vwKEAIQAw</string>
+    <string name="achievement_1024">CgkItbOR3vwKEAIQBA</string>
+    <string name="achievement_2048">CgkItbOR3vwKEAIQBQ</string>
     
     <string name="label_score">SCORE</string>
     <string name="label_best">BEST</string>
@@ -42,6 +46,8 @@
     <!-- GameScreen -->
     <string name="desc_undo">Undo Move</string>
     <string name="desc_settings">Open Settings</string>
+    <string name="desc_leaderboard">Open Leaderboard</string>
+    <string name="desc_achievements">Open Achievements</string>
     
     <!-- back to exit -->
     <string name="msg_double_back_exit">Press back again to exit</string>

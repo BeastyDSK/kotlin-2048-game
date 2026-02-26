@@ -28,8 +28,8 @@ android {
         applicationId = "neuracircuit.dev.game2048"
         minSdk = 23
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.0"
+        versionCode = 6
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -91,6 +91,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.fragment.ktx)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -119,4 +120,6 @@ dependencies {
     implementation(libs.play.services.games.v2)
     implementation(libs.play.app.update)
     implementation(libs.play.app.update.ktx)
+    implementation(libs.play.review)
+    implementation(libs.play.review.ktx)
 }
