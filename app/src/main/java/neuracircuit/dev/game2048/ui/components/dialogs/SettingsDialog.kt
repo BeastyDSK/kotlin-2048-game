@@ -34,8 +34,8 @@ fun SettingsDialog(
 ) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
-    val activity = context as Activity
-    val consentManager = remember { ConsentManager(activity) }
+    val activity = context as? Activity
+    val consentManager = activity?.let { remember(it) { ConsentManager(it) } }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -147,7 +147,7 @@ fun SettingsDialog(
                     )
                 }
 
-                if (consentManager.isPrivacyOptionsRequired) {
+                if (consentManager?.isPrivacyOptionsRequired == true) {
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Text(

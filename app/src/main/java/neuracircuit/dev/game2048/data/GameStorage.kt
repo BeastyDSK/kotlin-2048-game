@@ -8,6 +8,7 @@ import androidx.core.content.edit
 
 class GameStorage(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
+    private val analytics = AnalyticsManager(context.applicationContext)
     
     // Configured Json to be lenient
     private val json = Json { ignoreUnknownKeys = true }
@@ -62,7 +63,7 @@ class GameStorage(context: Context) {
             SavedGame(grid, score, highScore, freeUndosLeft)
         } catch (e: Exception) {
             // Handle corruption (e.g., manual JSON editing or bad update)
-            e.printStackTrace()
+            analytics.logNonFatalError("GameStorage.loadData", e)
             null
         }
     }

@@ -5,7 +5,9 @@ import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.SnapshotsClient
 import com.google.android.gms.games.snapshot.SnapshotMetadataChange
 
-class CloudSaveManager {
+class CloudSaveManager(
+    private val analytics: AnalyticsManager? = null
+) {
 
     fun isAuthenticated(activity: Activity, onResult: (Boolean) -> Unit) {
         PlayGames.getGamesSignInClient(activity)
@@ -34,10 +36,13 @@ class CloudSaveManager {
                         .build()
 
                     snapshotsClient.commitAndClose(snapshot, metadataChange)
+                        .addOnFailureListener { e ->
+                            analytics?.logNonFatalError("CloudSaveManager.saveGameToCloud.commit", e)
+                        }
                 }
             }
             .addOnFailureListener { e ->  
-                e.printStackTrace()
+                analytics?.logNonFatalError("CloudSaveManager.saveGameToCloud.open", e)
             }
     }
 
@@ -50,11 +55,13 @@ class CloudSaveManager {
                 if (snapshot != null) {
                     try {
                         val bytes = snapshot.snapshotContents.readFully()
-                        val save = CloudSaveData.fromByteArray(bytes)
+                        val save = CloudSaveData.fromByteArray(bytes) { parseError ->
+                            analytics?.logNonFatalError("CloudSaveManager.loadGameFromCloud.parse", parseError)
+                        }
                         snapshotsClient.discardAndClose(snapshot)
                         onLoaded(save)
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        analytics?.logNonFatalError("CloudSaveManager.loadGameFromCloud.read", e)
                         snapshotsClient.discardAndClose(snapshot)
                         onLoaded(null)
                     }
@@ -63,7 +70,7 @@ class CloudSaveManager {
                 }
             }
             .addOnFailureListener { e ->
-                e.printStackTrace()
+                analytics?.logNonFatalError("CloudSaveManager.loadGameFromCloud.open", e)
                 onLoaded(null)
             }
     }

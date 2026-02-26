@@ -52,7 +52,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val analytics = AnalyticsManager(application)
     
     // Stateless manager to avoid memory leaks
-    private val cloudSaveManager = CloudSaveManager()
+    private val cloudSaveManager = CloudSaveManager(analytics)
     private var cloudAuthenticated: Boolean = false
 
     private val _uiState = MutableStateFlow(GameUiState())

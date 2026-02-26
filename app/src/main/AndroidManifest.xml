@@ -20,7 +20,7 @@
 
             <meta-data
                 android:name="com.google.android.gms.games.APP_ID"
-                android:value="${PLAY_GAMES_APP_ID}" />
+                android:value="@string/PLAYGAMES_GAME_ID" />
         
             <meta-data android:name="google_analytics_default_allow_analytics_storage" android:value="false" />
             <meta-data android:name="google_analytics_default_allow_ad_storage" android:value="false" />

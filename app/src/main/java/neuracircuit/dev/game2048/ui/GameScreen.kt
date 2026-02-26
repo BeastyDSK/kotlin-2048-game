@@ -68,7 +68,7 @@ fun GameScreen(
 
     // double back to exit
     val context = LocalContext.current
-    val activity = LocalActivity.current as Activity
+    val activity = LocalActivity.current ?: (context as? Activity)
     
     // Load resource for toast
     val doubleBackMsg = stringResource(R.string.msg_double_back_exit)
@@ -80,8 +80,8 @@ fun GameScreen(
     // --- AD MANAGER INITIALIZATION & LOADING ---
     val adManager = remember { AdManager(context) }
 
-    LaunchedEffect(canUseCloudSave) {
-        if (canUseCloudSave) {
+    LaunchedEffect(canUseCloudSave, activity) {
+        if (canUseCloudSave && activity != null) {
             viewModel.refreshCloudAuth(activity) {
                 viewModel.syncWithCloud(activity)
             }
@@ -98,15 +98,17 @@ fun GameScreen(
 
     // --- DRY RESET LOGIC ---
     val handleGameReset = {
-        viewModel.resetGame(activity)
-        if (canRequestAds) {
-            adManager.showInterstitialAd(activity, onDismissed = {})
+        if (activity != null) {
+            viewModel.resetGame(activity)
+            if (canRequestAds) {
+                adManager.showInterstitialAd(activity, onDismissed = {})
+            }
         }
     }
 
     // --- DRY REVIVE LOGIC (Rewarded) ---
     val handleReviveRequest = {
-        if (canRequestAds) {
+        if (canRequestAds && activity != null) {
             adManager.showRewardedAd(
                 activity = activity,
                 onResult = { result ->
@@ -144,27 +146,29 @@ fun GameScreen(
     }
 
     val onUndoAdConfirm = {
-        adManager.showRewardedAd(
-            activity = activity,
-            onResult = { result ->
-                when (result) {
-                    RewardedAdResult.RewardGranted -> {
-                        showUndoAdOverlay = false
-                        viewModel.grantMoreUndos(1)
+        if (activity != null) {
+            adManager.showRewardedAd(
+                activity = activity,
+                onResult = { result ->
+                    when (result) {
+                        RewardedAdResult.RewardGranted -> {
+                            showUndoAdOverlay = false
+                            viewModel.grantMoreUndos(1)
+                        }
+                        RewardedAdResult.ClosedWithoutReward -> {
+                            Toast.makeText(context, context.getString(R.string.msg_ad_not_completed), Toast.LENGTH_SHORT).show()
+                        }
+                        RewardedAdResult.NotAvailable -> {
+                            Toast.makeText(context, context.getString(R.string.msg_ad_not_available), Toast.LENGTH_SHORT).show()
+                        }
+                        RewardedAdResult.FailedToShow -> {
+                            Toast.makeText(context, context.getString(R.string.msg_ad_failed_to_show), Toast.LENGTH_SHORT).show()
+                        }
                     }
-                    RewardedAdResult.ClosedWithoutReward -> {
-                        Toast.makeText(context, context.getString(R.string.msg_ad_not_completed), Toast.LENGTH_SHORT).show()
-                    }
-                    RewardedAdResult.NotAvailable -> {
-                        Toast.makeText(context, context.getString(R.string.msg_ad_not_available), Toast.LENGTH_SHORT).show()
-                    }
-                    RewardedAdResult.FailedToShow -> {
-                        Toast.makeText(context, context.getString(R.string.msg_ad_failed_to_show), Toast.LENGTH_SHORT).show()
-                    }
-                }
-            },
-            rewardType = RewardType.UNDO
-        )
+                },
+                rewardType = RewardType.UNDO
+            )
+        }
     }
 
     LaunchedEffect(viewModel) {
@@ -197,11 +201,11 @@ fun GameScreen(
                         val absY = abs(offsetY)
                         if (java.lang.Float.max(absX, absY) > minSwipeDist) {
                             if (absX > absY) {
-                                if (offsetX > 0) viewModel.handleSwipe(activity, Direction.RIGHT)
-                                else viewModel.handleSwipe(activity, Direction.LEFT)
+                                if (offsetX > 0) activity?.let { viewModel.handleSwipe(it, Direction.RIGHT) }
+                                else activity?.let { viewModel.handleSwipe(it, Direction.LEFT) }
                             } else {
-                                if (offsetY > 0) viewModel.handleSwipe(activity, Direction.DOWN)
-                                else viewModel.handleSwipe(activity, Direction.UP)
+                                if (offsetY > 0) activity?.let { viewModel.handleSwipe(it, Direction.DOWN) }
+                                else activity?.let { viewModel.handleSwipe(it, Direction.UP) }
                             }
                         }
                         offsetX = 0f

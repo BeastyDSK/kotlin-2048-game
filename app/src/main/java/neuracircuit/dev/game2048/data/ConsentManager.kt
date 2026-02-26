@@ -8,6 +8,7 @@ import com.google.android.ump.UserMessagingPlatform
 class ConsentManager(private val activity: Activity) {
     private val consentInformation: ConsentInformation =
         UserMessagingPlatform.getConsentInformation(activity)
+    private val analytics = AnalyticsManager(activity.applicationContext)
 
     /**
      * Helper interface to listen for the result of the consent flow.
@@ -42,11 +43,21 @@ class ConsentManager(private val activity: Activity) {
             params,
             {
                 UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity) { formError ->
+                    if (formError != null) {
+                        analytics.logNonFatalError(
+                            "ConsentManager.gatherConsent.form",
+                            IllegalStateException(formError.message)
+                        )
+                    }
                     // Consent gathering process is complete.
                     onConsentGatheringCompleteListener.onConsentGatheringComplete(formError)
                 }
             },
             { requestConsentError ->
+                analytics.logNonFatalError(
+                    "ConsentManager.gatherConsent.request",
+                    IllegalStateException(requestConsentError.message)
+                )
                 // Consent gathering failed.
                 onConsentGatheringCompleteListener.onConsentGatheringComplete(requestConsentError)
             }
@@ -55,6 +66,12 @@ class ConsentManager(private val activity: Activity) {
 
     fun showPrivacyOptionsForm(activity: Activity, onDismiss: () -> Unit) {
         UserMessagingPlatform.showPrivacyOptionsForm(activity) { formError ->
+            if (formError != null) {
+                analytics.logNonFatalError(
+                    "ConsentManager.showPrivacyOptionsForm",
+                    IllegalStateException(formError.message)
+                )
+            }
             onDismiss()
         }
     }

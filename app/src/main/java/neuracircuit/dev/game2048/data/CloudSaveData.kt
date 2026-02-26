@@ -48,7 +48,7 @@ data class CloudSaveData(
     }
 
     companion object {
-        fun fromByteArray(bytes: ByteArray): CloudSaveData? {
+        fun fromByteArray(bytes: ByteArray, onError: ((Exception) -> Unit)? = null): CloudSaveData? {
             return try {
                 val json = JSONObject(String(bytes, Charsets.UTF_8))
                 val score = json.getInt("score")
@@ -71,7 +71,7 @@ data class CloudSaveData(
 
                 CloudSaveData(grid, score, highScore, freeUndosLeft, history)
             } catch (e: Exception) {
-                e.printStackTrace()
+                onError?.invoke(e)
                 null
             }
         }

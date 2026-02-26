@@ -63,4 +63,24 @@ class AnalyticsManager(private val context: Context) {
     fun logUndoUsed() {
         firebaseAnalytics.logEvent("undo_used", null)
     }
+
+    fun logNonFatalError(tag: String, exception: Throwable) {
+        crashlytics.log("$tag: ${exception.message}")
+        // should be non fatal, so we don't want to crash the app, just log the exception
+        crashlytics.recordException(exception)
+    }
+
+    fun logAction(action: String, label: String? = null) {
+        val bundle = Bundle().apply {
+            putString("label", label)
+        }
+        firebaseAnalytics.logEvent(action, bundle)
+    }
+
+    fun logButtonClick(buttonName: String) {
+        val bundle = Bundle().apply {
+            putString("button_name", buttonName)
+        }
+        firebaseAnalytics.logEvent("button_click", bundle)
+    }
 }
