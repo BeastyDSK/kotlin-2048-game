@@ -242,7 +242,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(canUndo = true) }
     }
 
-    fun undoLastMove() {
+    fun undoLastMove(consumeFreeUndo: Boolean = true) {
         if (history.isEmpty()) return
 
         val snapshot = history.removeLast()
@@ -256,7 +256,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 score = snapshot.score,
                 isGameOver = false,
                 canUndo = history.isNotEmpty(),
-                freeUndosLeft = if (it.freeUndosLeft > 0) it.freeUndosLeft - 1 else 0
+                freeUndosLeft = if (consumeFreeUndo && it.freeUndosLeft > 0) it.freeUndosLeft - 1 else it.freeUndosLeft
             )
         }
         

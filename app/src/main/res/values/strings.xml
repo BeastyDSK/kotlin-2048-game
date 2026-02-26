@@ -48,4 +48,10 @@
     <string name="msg_ad_not_completed">Ad was not completed. Reward was not granted.</string>
     <string name="msg_ad_not_available">Ad is not available right now. Please try again.</string>
     <string name="msg_ad_failed_to_show">Ad failed to open. Please try again.</string>
+
+    <!-- In-App Updates -->
+    <string name="title_update_ready">Update ready</string>
+    <string name="msg_update_ready">A new version has finished downloading. Restart now to install it.</string>
+    <string name="btn_restart_now">Restart now</string>
+    <string name="btn_later">Later</string>
 </resources>

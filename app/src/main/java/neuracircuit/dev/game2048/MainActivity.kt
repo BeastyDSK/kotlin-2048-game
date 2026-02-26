@@ -25,12 +25,22 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayGamesSdk
+import androidx.compose.foundation.layout.Box
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import neuracircuit.dev.game2048.data.InAppUpdateCoordinator
+import neuracircuit.dev.game2048.ui.components.UpdateReadyOverlay
 
 class MainActivity : ComponentActivity() {
     private lateinit var analyticsManager: AnalyticsManager
     private lateinit var consentManager: ConsentManager
+    private lateinit var inAppUpdateCoordinator: InAppUpdateCoordinator
+    private lateinit var updateFlowLauncher: ActivityResultLauncher<IntentSenderRequest>
     private val canRequestAdState: MutableState<Boolean> = mutableStateOf(false);
     private val playGamesSignedInState: MutableState<Boolean> = mutableStateOf(false)
+    private val updatePromptVisibleState: MutableState<Boolean> = mutableStateOf(false)
+    private var isConsentFlowComplete = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -76,6 +86,19 @@ class MainActivity : ComponentActivity() {
         windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
         
         analyticsManager = AnalyticsManager(applicationContext)
+        inAppUpdateCoordinator = InAppUpdateCoordinator(analyticsManager)
+        inAppUpdateCoordinator.register(this)
+        inAppUpdateCoordinator.setOnFlexibleUpdateDownloaded {
+            runOnUiThread {
+                updatePromptVisibleState.value = true
+            }
+        }
+
+        updateFlowLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            if (result.resultCode != RESULT_OK) {
+                analyticsManager.logAction("in_app_update_cancelled")
+            }
+        }
 
         consentManager = ConsentManager(this)
 
@@ -90,6 +113,12 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+
+                isConsentFlowComplete = true
+                inAppUpdateCoordinator.checkForUpdates(
+                    launcher = updateFlowLauncher,
+                    preferredMode = InAppUpdateCoordinator.PreferredMode.AUTO
+                )
             }
         })
 
@@ -102,22 +131,53 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = GameColors.Background
                 ) {
-                    var showSplash by rememberSaveable { mutableStateOf(true) }
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        var showSplash by rememberSaveable { mutableStateOf(true) }
 
-                    if (showSplash) {
-                        SplashScreen(
-                            onAnimationFinished = {
-                                showSplash = false
-                            }
-                        )
-                    } else {
-                        GameScreen(
-                            canRequestAds = canRequestAds,
-                            canUseCloudSave = playGamesSignedIn
-                        )
+                        if (showSplash) {
+                            SplashScreen(
+                                onAnimationFinished = {
+                                    showSplash = false
+                                }
+                            )
+                        } else {
+                            GameScreen(
+                                canRequestAds = canRequestAds,
+                                canUseCloudSave = playGamesSignedIn
+                            )
+                        }
+
+                        if (updatePromptVisibleState.value) {
+                            UpdateReadyOverlay(
+                                onLater = { updatePromptVisibleState.value = false },
+                                onRestartNow = {
+                                    updatePromptVisibleState.value = false
+                                    inAppUpdateCoordinator.completeFlexibleUpdate()
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        if (
+            ::inAppUpdateCoordinator.isInitialized &&
+            ::updateFlowLauncher.isInitialized &&
+            isConsentFlowComplete
+        ) {
+            inAppUpdateCoordinator.onResume(updateFlowLauncher)
+        }
+    }
+
+    override fun onDestroy() {
+        if (::inAppUpdateCoordinator.isInitialized) {
+            inAppUpdateCoordinator.unregister()
+        }
+        super.onDestroy()
+    }
+
 }

@@ -117,4 +117,6 @@ dependencies {
     implementation(libs.play.services.ads)
 
     implementation(libs.play.services.games.v2)
+    implementation(libs.play.app.update)
+    implementation(libs.play.app.update.ktx)
 }

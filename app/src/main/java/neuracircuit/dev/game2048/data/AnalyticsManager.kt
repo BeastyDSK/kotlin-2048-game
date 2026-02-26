@@ -7,6 +7,8 @@ import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 
 class AnalyticsManager(private val context: Context) {
+    @Volatile
+    private var isEnabled: Boolean = false
 
     // Lazy initialization ensures we don't touch the SDK until we actually need it
     private val firebaseAnalytics: FirebaseAnalytics by lazy {
@@ -32,6 +34,7 @@ class AnalyticsManager(private val context: Context) {
             applyConsentToFirebase()
             firebaseAnalytics.setAnalyticsCollectionEnabled(true)
             crashlytics.isCrashlyticsCollectionEnabled = true
+            isEnabled = true
             
             Log.d("AnalyticsManager", "Consent granted. Analytics & Crashlytics enabled.")
         } catch (e: Exception) {
@@ -41,10 +44,12 @@ class AnalyticsManager(private val context: Context) {
     }
 
     fun logGameStart() {
+        if (!isEnabled) return
         firebaseAnalytics.logEvent("game_start", null)
     }
 
     fun logGameOver(score: Int, maxTile: Int) {
+        if (!isEnabled) return
         val bundle = Bundle().apply {
             putInt(FirebaseAnalytics.Param.SCORE, score)
             putInt("max_tile", maxTile)
@@ -53,6 +58,7 @@ class AnalyticsManager(private val context: Context) {
     }
 
     fun logTileReached(value: Int) {
+        if (!isEnabled) return
         val bundle = Bundle().apply {
             putInt(FirebaseAnalytics.Param.LEVEL, value) // Using 'Level' as a proxy for Tile Value
             putString(FirebaseAnalytics.Param.ACHIEVEMENT_ID, "tile_$value")
@@ -61,16 +67,19 @@ class AnalyticsManager(private val context: Context) {
     }
 
     fun logUndoUsed() {
+        if (!isEnabled) return
         firebaseAnalytics.logEvent("undo_used", null)
     }
 
     fun logNonFatalError(tag: String, exception: Throwable) {
+        if (!isEnabled) return
         crashlytics.log("$tag: ${exception.message}")
         // should be non fatal, so we don't want to crash the app, just log the exception
         crashlytics.recordException(exception)
     }
 
     fun logAction(action: String, label: String? = null) {
+        if (!isEnabled) return
         val bundle = Bundle().apply {
             putString("label", label)
         }
@@ -78,6 +87,7 @@ class AnalyticsManager(private val context: Context) {
     }
 
     fun logButtonClick(buttonName: String) {
+        if (!isEnabled) return
         val bundle = Bundle().apply {
             putString("button_name", buttonName)
         }

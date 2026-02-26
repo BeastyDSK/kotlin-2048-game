@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.painterResource
 import neuracircuit.dev.game2048.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.layout.BoxWithConstraints
 
 // Common constants for consistent styling
 private val OverlayCornerRadius = 16.dp
@@ -186,8 +187,9 @@ fun NewGameOverlay(onKeepPlaying: () -> Unit, onNewGame: () -> Unit) {
             ) {
                 Text(
                     text = stringResource(R.string.restart),
-                    fontSize = 32.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
                     color = GameColors.TextDark
                 )
                 
@@ -201,39 +203,114 @@ fun NewGameOverlay(onKeepPlaying: () -> Unit, onNewGame: () -> Unit) {
                     lineHeight = 22.sp
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Cancel / Keep Playing Button
                     TextButton(
                         onClick = onKeepPlaying,
-                        modifier = Modifier.weight(1f).height(48.dp),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = ButtonShape
                     ) {
                         Text(
                             text = stringResource(R.string.btn_keep_playing),
-                            color = Color.Gray, 
-                            fontSize = 16.sp, 
+                            color = Color.Gray,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-                    
-                    // Confirm / New Game Button
+
                     Button(
                         onClick = onNewGame,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = GameColors.TextDark
                         ),
                         shape = ButtonShape,
-                        modifier = Modifier.weight(1f).height(48.dp)
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
                     ) {
                         Text(
                             text = stringResource(R.string.btn_new_game),
-                            color = Color.White, 
-                            fontSize = 16.sp, 
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UpdateReadyOverlay(
+    onLater: () -> Unit,
+    onRestartNow: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(OverlayCornerRadius),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(24.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.title_update_ready),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    color = GameColors.TextDark
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = stringResource(R.string.msg_update_ready),
+                    fontSize = 16.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TextButton(
+                        onClick = onLater,
+                        modifier = Modifier.weight(1f).height(48.dp),
+                        shape = ButtonShape
+                    ) {
+                        Text(
+                            text = stringResource(R.string.btn_later),
+                            color = Color.Gray,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Button(
+                        onClick = onRestartNow,
+                        colors = ButtonDefaults.buttonColors(containerColor = GameColors.TextDark),
+                        shape = ButtonShape,
+                        modifier = Modifier.weight(1f).height(48.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.btn_restart_now),
+                            color = Color.White,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }

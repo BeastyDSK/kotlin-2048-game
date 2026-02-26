@@ -17,6 +17,7 @@ firebase-bom = "34.9.0"
 ump = "4.0.0"
 playServicesAds = "25.0.0"
 playGames = "21.0.0"
+playAppUpdate = "2.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -51,6 +52,8 @@ user-messaging-platform = { group = "com.google.android.ump", name = "user-messa
 play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
 
 play-services-games-v2 = { group = "com.google.android.gms", name = "play-services-games-v2", version.ref = "playGames" }
+play-app-update = { group = "com.google.android.play", name = "app-update", version.ref = "playAppUpdate" }
+play-app-update-ktx = { group = "com.google.android.play", name = "app-update-ktx", version.ref = "playAppUpdate" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

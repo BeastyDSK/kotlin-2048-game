@@ -114,7 +114,7 @@ fun GameScreen(
                 onResult = { result ->
                     when (result) {
                         RewardedAdResult.RewardGranted -> {
-                            viewModel.undoLastMove()
+                            viewModel.undoLastMove(consumeFreeUndo = false)
                         }
                         RewardedAdResult.ClosedWithoutReward -> {
                             Toast.makeText(context, context.getString(R.string.msg_ad_not_completed), Toast.LENGTH_SHORT).show()

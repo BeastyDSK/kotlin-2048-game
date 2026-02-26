@@ -77,6 +77,7 @@ class GameStorage(context: Context) {
         prefs.edit {
             remove("game_board")
                 .putInt("score", 0)
+                .putInt("free_undos_left", 3)
         }
     }
 
